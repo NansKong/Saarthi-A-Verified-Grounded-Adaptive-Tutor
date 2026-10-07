@@ -33,9 +33,10 @@ To ensure the 4 team members can work simultaneously without merge conflicts or 
 - **Output**: Verified `Question` records and updated student mastery states.
 - **Rule**: Pod C owns all BKT updates and assessment validation.
 
-### Pod D: Frontend, Evaluation & Demo (Member D - Integration Lead)
-- **Directory**: `src/ui/`, `src/eval/`, `src/api/`
-- **Scope**: FastAPI service endpoints, UI dashboard (Streamlit / Next.js), RAGAS evaluation harness, simulated student ablation bench (Adaptive vs. Random), end-to-end integration.
+### Pod D: Frontend, Evaluation & Demo (Member D - Integration Lead) [ACTIVE / OUR ROLE]
+- **Directory**: `src/ui/` (Next.js App), `src/eval/`, `src/api/`
+- **Scope**: Production Next.js UI dashboard & grounded chat, FastAPI service endpoints, RAGAS evaluation harness, simulated student ablation bench (Adaptive vs. Random), end-to-end integration.
+- **Frontend Stack**: **Next.js** (App Router, modern dynamic UI, rich glassmorphic/dark theme, interactive citation viewer, mastery gauges).
 - **Rule**: Pod D glues services together via the shared schemas without modifying internal pod logic directly.
 
 ---

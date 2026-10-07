@@ -29,7 +29,7 @@ src/
 | **Pod A** | Member A | PDF/PPTX parsing, Whisper timestamps, Vision diagram captioning, chunking | Raw Files | `ContentUnit` |
 | **Pod B** | Member B | Concept/prerequisite graph, Hybrid search, reranking, source citation chips, refusal logic | `ContentUnit` | `ConceptNode` + Grounded Citations |
 | **Pod C** | Member C | Assessment generator, Dual-LLM verifier, SymPy check, BKT engine, adaptive next-step logic | `ConceptNode` | `Question`, `LearnerState` |
-| **Pod D** | Member D | UI dashboard, FastAPI integration, RAGAS benchmark, simulated student ablation bench | All Schemas | Full Web App & Evaluation Report |
+| **Pod D** | Member D *(Integration Lead)* | Next.js UI dashboard & grounded chat, FastAPI integration, RAGAS benchmark, simulated student ablation bench | All Schemas | Full Next.js Web App & Evaluation Report |
 
 ---
 
