@@ -1,9 +1,16 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
 from pathlib import Path
 import shutil
 
-from app.ingestion.pdf_pipeline import process_pdf
-from app.ingestion.ppt_pipeline import process_ppt
+from fastapi import (
+    APIRouter,
+    UploadFile,
+    File,
+    HTTPException
+)
+
+from app.knowledge.knowledge_base_builder import (
+    build_knowledge_base
+)
 
 
 router = APIRouter(
@@ -12,80 +19,122 @@ router = APIRouter(
 )
 
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR = Path(
+    "uploads"
+)
+
+UPLOAD_DIR.mkdir(
+    exist_ok=True
+)
+
+
+SUPPORTED_EXTENSIONS = {
+    ".pdf",
+    ".pptx",
+    ".mp4"
+}
 
 
 @router.post("/upload")
 async def upload_course_file(
     file: UploadFile = File(...)
 ):
-    extension = Path(file.filename).suffix.lower()
 
-    if extension not in [".pdf", ".pptx"]:
+    if not file.filename:
+
         raise HTTPException(
             status_code=400,
-            detail="Currently supported: PDF and PPTX."
+            detail="Filename is missing."
         )
 
-    destination = UPLOAD_DIR / file.filename
 
-    with open(destination, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    # Process based on file type
-    if extension == ".pdf":
-        result = process_pdf(str(destination))
-        source_type = "pdf"
-
-    elif extension == ".pptx":
-        result = process_ppt(str(destination))
-        source_type = "slides"
-
-    content_units = result["all_units"]
-
-    # Count source locations
-    pages = {
-        unit.location["page"]
-        for unit in content_units
-        if unit.location and "page" in unit.location
-    }
-
-    slides = {
-        unit.location["slide"]
-        for unit in content_units
-        if unit.location and "slide" in unit.location
-    }
-
-    empty_units = sum(
-        1
-        for unit in content_units
-        if not unit.text.strip()
-        and not (unit.visual_description or "").strip()
+    extension = (
+        Path(file.filename)
+        .suffix
+        .lower()
     )
 
-    return {
-        "filename": file.filename,
-        "source_type": source_type,
-        "status": "processed",
 
-        "total_pages": len(pages),
-        "total_slides": len(slides),
+    if extension not in SUPPORTED_EXTENSIONS:
 
-        "text_unit_count": len(
-            result["text_units"]
-        ),
+        raise HTTPException(
+            status_code=400,
 
-        "visual_unit_count": len(
-            result["visual_units"]
-        ),
+            detail=(
+                "Unsupported file type. "
+                "Supported formats: "
+                "PDF, PPTX, MP4."
+            )
+        )
 
-        "content_unit_count": len(content_units),
 
-        "empty_units": empty_units,
+    destination = (
+        UPLOAD_DIR
+        /
+        file.filename
+    )
 
-        "content_units": [
-            unit.model_dump()
-            for unit in content_units
+
+    try:
+
+        # ---------------------------------
+        # Save uploaded file
+        # ---------------------------------
+
+        with open(
+            destination,
+            "wb"
+        ) as buffer:
+
+            shutil.copyfileobj(
+                file.file,
+                buffer
+            )
+
+
+        # ---------------------------------
+        # Run complete KB pipeline
+        # ---------------------------------
+
+        result = build_knowledge_base(
+            str(destination)
+        )
+
+
+        # ---------------------------------
+        # Convert Pydantic units to JSON
+        # ---------------------------------
+
+        result["content_units"] = [
+            unit.model_dump(
+                exclude={"embedding"}
+            )
+            for unit
+            in result["content_units"]
         ]
-    }
+
+
+        return {
+            "status":
+                "processed",
+
+            **result
+        }
+
+
+    except Exception as exc:
+
+        print(
+            f"[Knowledge Upload Error] "
+            f"{type(exc).__name__}: "
+            f"{exc}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+
+            detail=(
+                f"Knowledge processing failed: "
+                f"{str(exc)}"
+            )
+        )
