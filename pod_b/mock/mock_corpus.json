@@ -1,0 +1,347 @@
+{
+  "course_id": "ml-lecture-2-demo",
+  "units": [
+    {
+      "unit_id": "sl-03",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 3
+      },
+      "text": "A derivative measures how fast a function's output changes as its input changes. Formally, f'(x) is the limit of (f(x+h) - f(x)) / h as h approaches 0.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-04",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 4
+      },
+      "text": "Geometrically, the derivative at a point is the slope of the tangent line to the curve at that point. A positive derivative means the function is increasing; a negative derivative means it is decreasing.",
+      "image_caption": "Graph of a curve with a tangent line touching it at one point; the tangent's slope is labelled f'(x).",
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-06",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 6
+      },
+      "text": "Common derivative rules: the power rule d/dx x^n = n x^(n-1); the derivative of a constant is 0; the sum rule says the derivative of f+g is f'+g'.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-08",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 8
+      },
+      "text": "The chain rule differentiates a composition of functions. If y = f(g(x)), then dy/dx = f'(g(x)) * g'(x). Differentiate the outer function, keep the inner function, then multiply by the derivative of the inner function.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-09",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 9
+      },
+      "text": "Chain rule example: y = (3x + 1)^2. Let u = 3x + 1, so y = u^2. Then dy/du = 2u and du/dx = 3, giving dy/dx = 2(3x + 1) * 3 = 6(3x + 1).",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-11",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 11
+      },
+      "text": "A loss function measures how wrong a model's predictions are. Training a model means finding parameters that make the loss as small as possible. Mean squared error is the average of the squared differences between predictions and targets.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-13",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 13
+      },
+      "text": "Gradient descent is an optimization algorithm that minimizes a loss function by repeatedly moving the parameters in the direction opposite to the gradient. The update rule is: theta_new = theta_old - alpha * gradient, where alpha is the learning rate.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-14",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 14
+      },
+      "text": "Gradient descent visualised on the loss surface. Each step moves downhill in the direction of steepest decrease, and the algorithm converges toward a minimum.",
+      "image_caption": "A 3D loss surface shaped like a bowl with a sequence of arrows stepping downhill toward the minimum at the bottom.",
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-15",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 15
+      },
+      "text": "The learning rate alpha controls the step size. If alpha is too small, convergence is very slow. If alpha is too large, the updates overshoot the minimum and the loss may oscillate or diverge.",
+      "image_caption": "Three small plots of loss versus iterations: a slowly falling curve (alpha too small), a smooth fast curve (good alpha), and a zig-zagging rising curve (alpha too large).",
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-16",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 16
+      },
+      "text": "Variants of gradient descent: batch gradient descent uses the whole dataset per step; stochastic gradient descent (SGD) uses one example per step; mini-batch gradient descent uses a small batch and is the most common in practice.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-19",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 19
+      },
+      "text": "A neural network is built from layers of neurons. Each neuron computes a weighted sum of its inputs plus a bias, then applies an activation function such as ReLU or sigmoid.",
+      "image_caption": "Diagram of a fully connected network with an input layer of three nodes, one hidden layer of four nodes and an output layer of one node, with lines connecting every node between adjacent layers.",
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-20",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 20
+      },
+      "text": "Activation functions add non-linearity. Without them, a stack of linear layers collapses into a single linear transformation, so the network could not learn complex patterns. ReLU is defined as max(0, x).",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-22",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 22
+      },
+      "text": "Backpropagation computes the gradient of the loss with respect to every weight by applying the chain rule backward through the network, layer by layer. These gradients are then used by gradient descent to update the weights.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-23",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 23
+      },
+      "text": "Training loop: (1) forward pass to compute predictions, (2) compute the loss, (3) backward pass (backpropagation) to compute gradients, (4) update the weights with gradient descent. Repeat for many epochs.",
+      "image_caption": "Flowchart with four boxes in a cycle: Forward pass, Loss, Backward pass, Weight update.",
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "sl-25",
+      "source_id": "ML_Slides_L2",
+      "source_type": "slides",
+      "location": {
+        "slide": 25
+      },
+      "text": "Overfitting happens when a model fits the training data too closely, including its noise, and performs poorly on new data. Regularization and early stopping help reduce overfitting.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "tb-0112",
+      "source_id": "ML_Textbook",
+      "source_type": "pdf",
+      "location": {
+        "page": 112
+      },
+      "text": "The derivative of a function at a point is the instantaneous rate of change of that function. It generalises the notion of average speed over an interval to speed at a single instant.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "tb-0118",
+      "source_id": "ML_Textbook",
+      "source_type": "pdf",
+      "location": {
+        "page": 118
+      },
+      "text": "Theorem (chain rule). Let g be differentiable at x and f be differentiable at g(x). Then the composite f o g is differentiable at x and (f o g)'(x) = f'(g(x)) g'(x). The rule extends to longer compositions by applying it repeatedly.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "tb-0204",
+      "source_id": "ML_Textbook",
+      "source_type": "pdf",
+      "location": {
+        "page": 204
+      },
+      "text": "For a function of several variables, the gradient is the vector of its partial derivatives. The gradient points in the direction of steepest increase of the function, and its negative points in the direction of steepest decrease.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "tb-0207",
+      "source_id": "ML_Textbook",
+      "source_type": "pdf",
+      "location": {
+        "page": 207
+      },
+      "text": "Gradient descent: starting from an initial point, repeatedly update theta <- theta - alpha * grad L(theta). For a convex loss and a suitably small learning rate, the iterates converge to the global minimum. For non-convex losses, convergence is only guaranteed to a stationary point.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "tb-0209",
+      "source_id": "ML_Textbook",
+      "source_type": "pdf",
+      "location": {
+        "page": 209
+      },
+      "text": "Choosing the learning rate. A common practice is to try values on a logarithmic scale such as 0.1, 0.01 and 0.001 and to monitor the training loss. Learning rate schedules reduce alpha over time to settle into a minimum.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "tb-0231",
+      "source_id": "ML_Textbook",
+      "source_type": "pdf",
+      "location": {
+        "page": 231
+      },
+      "text": "The universal approximation theorem states that a feedforward network with a single hidden layer and a non-linear activation can approximate any continuous function on a compact domain to arbitrary accuracy, given enough hidden units.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "tb-0236",
+      "source_id": "ML_Textbook",
+      "source_type": "pdf",
+      "location": {
+        "page": 236
+      },
+      "text": "Backpropagation is an efficient application of the chain rule. By reusing intermediate derivatives, it computes all weight gradients in a time proportional to a single forward pass, instead of recomputing derivatives for every weight separately.",
+      "image_caption": "Computation graph for a two-layer network with arrows showing the forward values and backward gradients flowing through each node.",
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "vd-0035",
+      "source_id": "ML_Lecture_2",
+      "source_type": "video",
+      "location": {
+        "t_start": 35,
+        "t_end": 155
+      },
+      "text": "Welcome back. Today we connect calculus to machine learning. We will start with derivatives, then the chain rule, then use them to understand how a model actually learns by gradient descent.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "vd-0155",
+      "source_id": "ML_Lecture_2",
+      "source_type": "video",
+      "location": {
+        "t_start": 155,
+        "t_end": 440
+      },
+      "text": "So what is a derivative? Think of driving a car: your speedometer tells you how fast your position is changing right now. That is the derivative of position with respect to time. On a graph, it is the slope of the tangent line.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "vd-0440",
+      "source_id": "ML_Lecture_2",
+      "source_type": "video",
+      "location": {
+        "t_start": 440,
+        "t_end": 761
+      },
+      "text": "Now the chain rule. Whenever you have a function inside another function, you differentiate the outside, leave the inside alone, and multiply by the derivative of the inside. Students often forget that last multiplication, which is the most common mistake.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "vd-0761",
+      "source_id": "ML_Lecture_2",
+      "source_type": "video",
+      "location": {
+        "t_start": 761,
+        "t_end": 1085
+      },
+      "text": "Here is gradient descent. Imagine standing on a hillside in fog. You cannot see the valley, but you can feel the slope under your feet. So you take a step downhill, again and again. The gradient tells you the slope, and we step the opposite way.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "vd-1085",
+      "source_id": "ML_Lecture_2",
+      "source_type": "video",
+      "location": {
+        "t_start": 1085,
+        "t_end": 1380
+      },
+      "text": "The learning rate is how big each step is. Too big and you jump across the valley and overshoot; too small and you will be walking all day. In practice we try a few values and watch the loss curve.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    },
+    {
+      "unit_id": "vd-1380",
+      "source_id": "ML_Lecture_2",
+      "source_type": "video",
+      "location": {
+        "t_start": 1380,
+        "t_end": 1700
+      },
+      "text": "Finally, neural networks. Training a network is just gradient descent on a very large function. Backpropagation is how we compute that gradient efficiently: it is the chain rule applied backward from the loss to each weight.",
+      "image_caption": null,
+      "embedding": null,
+      "topic_ids": []
+    }
+  ]
+}
