@@ -1,0 +1,9 @@
+{
+  "concept_id": "fraud_detection",
+  "concept_name": "Fraud Detection",
+  "status": "completed",
+  "prerequisites": [
+    "classification",
+    "data_imbalance"
+  ]
+}

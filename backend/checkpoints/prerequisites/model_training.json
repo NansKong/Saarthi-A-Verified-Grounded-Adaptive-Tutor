@@ -1,0 +1,9 @@
+{
+  "concept_id": "model_training",
+  "concept_name": "Model Training",
+  "status": "completed",
+  "prerequisites": [
+    "model",
+    "training_data"
+  ]
+}

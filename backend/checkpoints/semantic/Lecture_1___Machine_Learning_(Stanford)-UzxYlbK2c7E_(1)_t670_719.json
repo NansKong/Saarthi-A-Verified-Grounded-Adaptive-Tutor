@@ -1,0 +1,16 @@
+{
+  "unit_id": "Lecture 1 _ Machine Learning (Stanford)-UzxYlbK2c7E (1)_t670_719",
+  "status": "completed",
+  "topic": "Machine Learning",
+  "subtopic": "Probability and Statistics Prerequisites",
+  "concept_ids": [
+    "matlab",
+    "octave",
+    "probability",
+    "statistics",
+    "random_variables",
+    "expectation",
+    "variance",
+    "linear_algebra"
+  ]
+}

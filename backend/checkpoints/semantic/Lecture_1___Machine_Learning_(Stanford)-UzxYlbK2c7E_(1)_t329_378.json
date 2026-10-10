@@ -1,0 +1,13 @@
+{
+  "unit_id": "Lecture 1 _ Machine Learning (Stanford)-UzxYlbK2c7E (1)_t329_378",
+  "status": "completed",
+  "topic": "Machine Learning",
+  "subtopic": "Applications and Motivation",
+  "concept_ids": [
+    "handwritten_character_recognition",
+    "autonomous_flight",
+    "optical_character_recognition",
+    "computer_vision",
+    "helicopter_control"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "concept_id": "backpropagation",
+  "concept_name": "Backpropagation",
+  "status": "completed",
+  "prerequisites": [
+    "neural_network",
+    "gradient"
+  ]
+}

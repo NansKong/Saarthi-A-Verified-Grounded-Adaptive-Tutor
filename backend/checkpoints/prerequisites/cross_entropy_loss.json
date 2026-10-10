@@ -1,0 +1,9 @@
+{
+  "concept_id": "cross_entropy_loss",
+  "concept_name": "Cross Entropy Loss",
+  "status": "completed",
+  "prerequisites": [
+    "loss_function",
+    "classification"
+  ]
+}

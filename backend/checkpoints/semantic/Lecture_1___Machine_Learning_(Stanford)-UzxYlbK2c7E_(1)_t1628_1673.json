@@ -1,0 +1,12 @@
+{
+  "unit_id": "Lecture 1 _ Machine Learning (Stanford)-UzxYlbK2c7E (1)_t1628_1673",
+  "status": "completed",
+  "topic": "Machine Learning Foundations and Extensions",
+  "subtopic": "Advanced Topics and Mathematics",
+  "concept_ids": [
+    "linear_algebra",
+    "hidden_markov_models",
+    "time_series_modeling",
+    "convex_optimization"
+  ]
+}

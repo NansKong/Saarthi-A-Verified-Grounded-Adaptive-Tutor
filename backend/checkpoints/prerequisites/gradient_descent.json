@@ -1,0 +1,9 @@
+{
+  "concept_id": "gradient_descent",
+  "concept_name": "Gradient Descent",
+  "status": "completed",
+  "prerequisites": [
+    "gradient",
+    "loss_function"
+  ]
+}

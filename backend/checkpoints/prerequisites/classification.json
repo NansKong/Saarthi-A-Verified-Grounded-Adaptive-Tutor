@@ -1,0 +1,8 @@
+{
+  "concept_id": "classification",
+  "concept_name": "Classification",
+  "status": "completed",
+  "prerequisites": [
+    "supervised_learning"
+  ]
+}

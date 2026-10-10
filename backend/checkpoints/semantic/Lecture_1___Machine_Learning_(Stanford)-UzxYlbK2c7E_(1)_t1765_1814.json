@@ -1,0 +1,15 @@
+{
+  "unit_id": "Lecture 1 _ Machine Learning (Stanford)-UzxYlbK2c7E (1)_t1765_1814",
+  "status": "completed",
+  "topic": "Course Prerequisites",
+  "subtopic": "Computer Science Foundations",
+  "concept_ids": [
+    "big_o_notation",
+    "data_structures",
+    "queue",
+    "binary_tree",
+    "matlab",
+    "octave",
+    "linked_list"
+  ]
+}

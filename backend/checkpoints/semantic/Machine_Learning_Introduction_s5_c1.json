@@ -1,0 +1,13 @@
+{
+  "unit_id": "Machine_Learning_Introduction_s5_c1",
+  "status": "completed",
+  "topic": "Machine Learning",
+  "subtopic": "Industry Applications and Best Practices",
+  "concept_ids": [
+    "medical_diagnosis",
+    "fraud_detection",
+    "recommendation_systems",
+    "route_optimization",
+    "responsible_ai"
+  ]
+}

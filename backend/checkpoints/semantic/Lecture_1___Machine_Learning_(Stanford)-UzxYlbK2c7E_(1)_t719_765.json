@@ -1,0 +1,13 @@
+{
+  "unit_id": "Lecture 1 _ Machine Learning (Stanford)-UzxYlbK2c7E (1)_t719_765",
+  "status": "completed",
+  "topic": "Linear Algebra",
+  "subtopic": "Linear Algebra Prerequisites",
+  "concept_ids": [
+    "matrices",
+    "vectors",
+    "matrix_multiplication",
+    "matrix_inverse",
+    "eigenvectors"
+  ]
+}

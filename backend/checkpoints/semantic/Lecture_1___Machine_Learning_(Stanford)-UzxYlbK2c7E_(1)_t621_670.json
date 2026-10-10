@@ -1,0 +1,14 @@
+{
+  "unit_id": "Lecture 1 _ Machine Learning (Stanford)-UzxYlbK2c7E (1)_t621_670",
+  "status": "completed",
+  "topic": "Machine Learning",
+  "subtopic": "Course Logistics and Computer Science Prerequisites",
+  "concept_ids": [
+    "big_o_notation",
+    "data_structures",
+    "queue",
+    "stack",
+    "binary_tree",
+    "programming_fundamentals"
+  ]
+}

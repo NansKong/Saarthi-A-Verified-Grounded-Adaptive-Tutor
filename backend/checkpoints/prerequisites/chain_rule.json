@@ -1,0 +1,8 @@
+{
+  "concept_id": "chain_rule",
+  "concept_name": "Chain Rule",
+  "status": "completed",
+  "prerequisites": [
+    "derivative"
+  ]
+}

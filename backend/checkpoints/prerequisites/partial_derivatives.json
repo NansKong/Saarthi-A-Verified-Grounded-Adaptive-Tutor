@@ -1,0 +1,8 @@
+{
+  "concept_id": "partial_derivatives",
+  "concept_name": "Partial Derivatives",
+  "status": "completed",
+  "prerequisites": [
+    "derivative"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "concept_id": "optimization",
+  "concept_name": "Optimization",
+  "status": "completed",
+  "prerequisites": [
+    "gradient"
+  ]
+}

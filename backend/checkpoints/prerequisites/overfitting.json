@@ -1,0 +1,8 @@
+{
+  "concept_id": "overfitting",
+  "concept_name": "Overfitting",
+  "status": "completed",
+  "prerequisites": [
+    "generalization"
+  ]
+}

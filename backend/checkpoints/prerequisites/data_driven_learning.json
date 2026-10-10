@@ -1,0 +1,8 @@
+{
+  "concept_id": "data_driven_learning",
+  "concept_name": "Data-Driven Learning",
+  "status": "completed",
+  "prerequisites": [
+    "training_data"
+  ]
+}

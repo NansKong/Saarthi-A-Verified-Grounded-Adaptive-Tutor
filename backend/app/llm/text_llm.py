@@ -1,5 +1,7 @@
-import os
 import json
+import os
+import re
+import threading
 import time
 
 from dotenv import load_dotenv
@@ -20,12 +22,17 @@ load_dotenv()
 # =====================================================
 
 class LLMUnavailableError(RuntimeError):
-    """
-    Raised only when every configured LLM provider
-    is temporarily unavailable or fails.
-    """
 
-    pass
+    def __init__(
+        self,
+        message: str,
+        retry_after_seconds: float | None = None
+    ):
+        super().__init__(message)
+
+        self.retry_after_seconds = (
+            retry_after_seconds
+        )
 
 
 # =====================================================
@@ -47,7 +54,29 @@ GEMINI_API_KEY = os.getenv(
 
 GEMINI_MODEL = os.getenv(
     "GEMINI_TEXT_MODEL",
-    "gemini-2.5-flash"
+    "gemini-3.8-flash"
+)
+
+
+# Gemini free tier currently has a very small
+# requests-per-minute allowance.
+#
+# 13 seconds ≈ 4.6 requests/minute.
+GEMINI_MIN_INTERVAL_SECONDS = float(
+    os.getenv(
+        "GEMINI_MIN_INTERVAL_SECONDS",
+        "13"
+    )
+)
+
+
+# Do not freeze an HTTP request for a minute if
+# Gemini tells us to retry in ~59 seconds.
+GEMINI_MAX_RETRY_WAIT_SECONDS = float(
+    os.getenv(
+        "GEMINI_MAX_RETRY_WAIT_SECONDS",
+        "15"
+    )
 )
 
 
@@ -74,6 +103,103 @@ if GEMINI_API_KEY:
 
 
 # =====================================================
+# Shared Gemini request throttle
+# =====================================================
+
+_gemini_lock = threading.Lock()
+
+_gemini_last_request_time = 0.0
+
+
+def wait_for_gemini_slot():
+    """
+    Global Gemini throttle.
+
+    Both text and image calls can use this function,
+    preventing them from independently exceeding
+    the same Gemini project RPM quota.
+    """
+
+    global _gemini_last_request_time
+
+    with _gemini_lock:
+
+        now = time.monotonic()
+
+        elapsed = (
+            now
+            - _gemini_last_request_time
+        )
+
+        wait_time = (
+            GEMINI_MIN_INTERVAL_SECONDS
+            - elapsed
+        )
+
+
+        if wait_time > 0:
+
+            print(
+                "[Gemini Throttle] "
+                f"Waiting {wait_time:.1f}s..."
+            )
+
+            time.sleep(
+                wait_time
+            )
+
+
+        _gemini_last_request_time = (
+            time.monotonic()
+        )
+
+
+# =====================================================
+# Retry delay parser
+# =====================================================
+
+def get_retry_after_seconds(
+    exc: Exception
+) -> float | None:
+
+    message = str(
+        exc
+    )
+
+
+    patterns = [
+        r"retryDelay['\"]?\s*:\s*['\"]?([\d.]+)s",
+        r"retry in ([\d.]+)s",
+        r"retry after ([\d.]+)s"
+    ]
+
+
+    for pattern in patterns:
+
+        match = re.search(
+            pattern,
+            message,
+            flags=re.IGNORECASE
+        )
+
+
+        if match:
+
+            try:
+
+                return float(
+                    match.group(1)
+                )
+
+            except ValueError:
+
+                pass
+
+
+    return None
+
+
+# =====================================================
 # JSON helper
 # =====================================================
 
@@ -85,16 +211,29 @@ def _clean_json_response(
         return {}
 
 
-    raw_content = raw_content.strip()
+    raw_content = (
+        raw_content.strip()
+    )
 
 
-    if raw_content.startswith("```"):
+    if raw_content.startswith(
+        "```"
+    ):
 
         raw_content = (
             raw_content
-            .replace("```json", "")
-            .replace("```JSON", "")
-            .replace("```", "")
+            .replace(
+                "```json",
+                ""
+            )
+            .replace(
+                "```JSON",
+                ""
+            )
+            .replace(
+                "```",
+                ""
+            )
             .strip()
         )
 
@@ -109,7 +248,8 @@ def _clean_json_response(
     except json.JSONDecodeError:
 
         print(
-            "[Text LLM] Invalid JSON response:"
+            "[Text LLM] "
+            "Invalid JSON response:"
         )
 
         print(
@@ -135,6 +275,13 @@ def _call_groq(
         )
 
 
+    if not GROQ_MODEL:
+
+        raise RuntimeError(
+            "Groq model is not configured."
+        )
+
+
     response = (
         groq_client
         .chat
@@ -144,12 +291,18 @@ def _call_groq(
 
             messages=[
                 {
-                    "role": "system",
-                    "content": system_prompt
+                    "role":
+                        "system",
+
+                    "content":
+                        system_prompt
                 },
                 {
-                    "role": "user",
-                    "content": prompt
+                    "role":
+                        "user",
+
+                    "content":
+                        prompt
                 }
             ],
 
@@ -163,6 +316,7 @@ def _call_groq(
         .choices[0]
         .message
         .content
+        or ""
     )
 
 
@@ -185,6 +339,9 @@ def _call_gemini(
         raise RuntimeError(
             "Gemini client is unavailable."
         )
+
+
+    wait_for_gemini_slot()
 
 
     full_prompt = f"""
@@ -222,7 +379,7 @@ USER REQUEST:
 
 
 # =====================================================
-# Detect retryable Gemini errors
+# Gemini error detection
 # =====================================================
 
 def _is_retryable_gemini_error(
@@ -252,7 +409,7 @@ def _is_retryable_gemini_error(
 
 
 # =====================================================
-# Gemini with retries
+# Gemini retry
 # =====================================================
 
 def _call_gemini_with_retry(
@@ -260,13 +417,6 @@ def _call_gemini_with_retry(
     system_prompt: str,
     max_attempts: int = 3
 ) -> dict:
-
-    delays = [
-        2,
-        4,
-        8
-    ]
-
 
     last_exception = None
 
@@ -285,7 +435,8 @@ def _call_gemini_with_retry(
 
 
             print(
-                "[Text LLM] Provider: Gemini"
+                "[Text LLM] "
+                "Provider: Gemini"
             )
 
 
@@ -297,43 +448,91 @@ def _call_gemini_with_retry(
             last_exception = exc
 
 
-            retryable = (
-                _is_retryable_gemini_error(
-                    exc
-                )
-            )
-
-
             print(
-                f"[Text LLM] Gemini attempt "
-                f"{attempt}/{max_attempts} failed: "
+                f"[Text LLM] "
+                f"Gemini attempt "
+                f"{attempt}/{max_attempts} "
+                f"failed: "
                 f"{type(exc).__name__}: "
                 f"{exc}"
             )
 
 
-            if not retryable:
+            if not _is_retryable_gemini_error(
+                exc
+            ):
 
                 break
+
+
+            retry_after = (
+                get_retry_after_seconds(
+                    exc
+                )
+            )
+
+
+            # ---------------------------------------------
+            # Provider says wait too long.
+            #
+            # Do NOT hammer it repeatedly.
+            # Let checkpoint/resume architecture handle it.
+            # ---------------------------------------------
+
+            if (
+                retry_after is not None
+                and
+                retry_after
+                > GEMINI_MAX_RETRY_WAIT_SECONDS
+            ):
+
+                print(
+                    "[Text LLM] "
+                    f"Gemini requested a "
+                    f"{retry_after:.1f}s retry delay."
+                )
+
+                print(
+                    "[Text LLM] "
+                    "Deferring instead of "
+                    "blocking the request."
+                )
+
+
+                raise LLMUnavailableError(
+                    (
+                        "Gemini rate limit window "
+                        "has not reset yet."
+                    ),
+                    retry_after_seconds=(
+                        retry_after
+                    )
+                ) from exc
 
 
             if attempt >= max_attempts:
-
                 break
 
 
-            delay = delays[
-                min(
-                    attempt - 1,
-                    len(delays) - 1
+            if retry_after is not None:
+
+                delay = max(
+                    retry_after,
+                    1.0
                 )
-            ]
+
+            else:
+
+                delay = min(
+                    2 ** attempt,
+                    8
+                )
 
 
             print(
-                f"[Text LLM] "
+                "[Text LLM] "
                 f"Retrying Gemini in "
-                f"{delay} seconds..."
+                f"{delay:.1f}s..."
             )
 
 
@@ -343,12 +542,19 @@ def _call_gemini_with_retry(
 
 
     raise LLMUnavailableError(
-        "Gemini remained unavailable after retries."
+        "Gemini remained unavailable after retries.",
+        retry_after_seconds=(
+            get_retry_after_seconds(
+                last_exception
+            )
+            if last_exception
+            else None
+        )
     ) from last_exception
 
 
 # =====================================================
-# Public provider router
+# Public router
 # =====================================================
 
 def generate_json(
@@ -359,9 +565,9 @@ def generate_json(
     groq_failed = False
 
 
-    # -------------------------------------------------
+    # =================================================
     # Provider 1 — Groq
-    # -------------------------------------------------
+    # =================================================
 
     if groq_client:
 
@@ -374,7 +580,8 @@ def generate_json(
 
 
             print(
-                "[Text LLM] Provider: Groq"
+                "[Text LLM] "
+                "Provider: Groq"
             )
 
 
@@ -390,6 +597,7 @@ def generate_json(
                 "[Text LLM] "
                 "Groq rate limit reached."
             )
+
 
             print(
                 "[Text LLM] "
@@ -409,47 +617,36 @@ def generate_json(
                 f"{exc}"
             )
 
+
             print(
                 "[Text LLM] "
                 "Trying Gemini..."
             )
 
 
-    # -------------------------------------------------
+    # =================================================
     # Provider 2 — Gemini
-    # -------------------------------------------------
+    # =================================================
 
     if gemini_client:
 
-        try:
-
-            return _call_gemini_with_retry(
-                prompt=prompt,
-                system_prompt=system_prompt
-            )
+        return _call_gemini_with_retry(
+            prompt=prompt,
+            system_prompt=system_prompt
+        )
 
 
-        except LLMUnavailableError:
-
-            raise
-
-
-        except Exception as exc:
-
-            raise LLMUnavailableError(
-                "Gemini provider failed."
-            ) from exc
-
-
-    # -------------------------------------------------
+    # =================================================
     # Nothing worked
-    # -------------------------------------------------
+    # =================================================
 
     if groq_failed:
 
         raise LLMUnavailableError(
-            "Groq failed and no working fallback "
-            "provider is available."
+            (
+                "Groq failed and no working "
+                "fallback provider is available."
+            )
         )
 
 

@@ -1,0 +1,8 @@
+{
+  "concept_id": "random_forests",
+  "concept_name": "Random Forests",
+  "status": "completed",
+  "prerequisites": [
+    "decision_trees"
+  ]
+}

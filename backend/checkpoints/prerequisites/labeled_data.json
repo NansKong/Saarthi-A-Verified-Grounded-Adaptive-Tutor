@@ -1,0 +1,8 @@
+{
+  "concept_id": "labeled_data",
+  "concept_name": "Labeled Data",
+  "status": "completed",
+  "prerequisites": [
+    "data_sets"
+  ]
+}

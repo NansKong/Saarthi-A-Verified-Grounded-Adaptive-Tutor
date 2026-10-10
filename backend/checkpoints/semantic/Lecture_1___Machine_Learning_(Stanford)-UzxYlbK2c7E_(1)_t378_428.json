@@ -1,0 +1,12 @@
+{
+  "unit_id": "Lecture 1 _ Machine Learning (Stanford)-UzxYlbK2c7E (1)_t378_428",
+  "status": "completed",
+  "topic": "Machine Learning",
+  "subtopic": "Applications of Learning Algorithms",
+  "concept_ids": [
+    "handwritten_digit_recognition",
+    "database_mining",
+    "medical_records",
+    "learning_algorithms"
+  ]
+}

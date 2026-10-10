@@ -1,0 +1,8 @@
+{
+  "concept_id": "decision_trees",
+  "concept_name": "Decision Trees",
+  "status": "completed",
+  "prerequisites": [
+    "classification"
+  ]
+}

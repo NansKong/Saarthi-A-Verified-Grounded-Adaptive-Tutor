@@ -1,0 +1,9 @@
+{
+  "concept_id": "feature_label_relationship",
+  "concept_name": "Feature-Label Relationship",
+  "status": "completed",
+  "prerequisites": [
+    "labeled_data",
+    "training_data"
+  ]
+}

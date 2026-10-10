@@ -1,0 +1,13 @@
+{
+  "unit_id": "Machine_Learning_Introduction_s1_c1",
+  "status": "completed",
+  "topic": "Machine Learning",
+  "subtopic": "Fundamentals and Core Objectives",
+  "concept_ids": [
+    "pattern_recognition",
+    "data_driven_learning",
+    "predictions",
+    "generalization",
+    "feature_label_relationship"
+  ]
+}

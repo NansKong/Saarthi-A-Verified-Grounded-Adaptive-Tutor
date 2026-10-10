@@ -1,0 +1,9 @@
+{
+  "concept_id": "model_evaluation",
+  "concept_name": "Model Evaluation",
+  "status": "completed",
+  "prerequisites": [
+    "model",
+    "supervised_learning"
+  ]
+}

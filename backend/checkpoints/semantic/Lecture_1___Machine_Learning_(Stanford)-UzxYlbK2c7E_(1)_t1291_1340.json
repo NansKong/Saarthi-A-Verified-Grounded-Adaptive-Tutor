@@ -1,0 +1,14 @@
+{
+  "unit_id": "Lecture 1 _ Machine Learning (Stanford)-UzxYlbK2c7E (1)_t1291_1340",
+  "status": "completed",
+  "topic": "Machine Learning",
+  "subtopic": "Machine Learning Application Domains",
+  "concept_ids": [
+    "computer_vision",
+    "robotics_control",
+    "autonomous_aircraft",
+    "recommendation_systems",
+    "medical_image_segmentation",
+    "algorithm_optimization"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "concept_id": "model_deployment",
+  "concept_name": "Model Deployment",
+  "status": "completed",
+  "prerequisites": [
+    "model_evaluation"
+  ]
+}

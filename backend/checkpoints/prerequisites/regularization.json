@@ -1,0 +1,8 @@
+{
+  "concept_id": "regularization",
+  "concept_name": "Regularization",
+  "status": "completed",
+  "prerequisites": [
+    "overfitting"
+  ]
+}

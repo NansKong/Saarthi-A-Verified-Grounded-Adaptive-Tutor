@@ -1,0 +1,9 @@
+{
+  "concept_id": "train_test_split",
+  "concept_name": "Train Test Split",
+  "status": "completed",
+  "prerequisites": [
+    "supervised_learning",
+    "model"
+  ]
+}

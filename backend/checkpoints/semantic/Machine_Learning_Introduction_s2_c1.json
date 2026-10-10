@@ -1,0 +1,13 @@
+{
+  "unit_id": "Machine_Learning_Introduction_s2_c1",
+  "status": "completed",
+  "topic": "Machine Learning",
+  "subtopic": "Paradigms and Learning Types",
+  "concept_ids": [
+    "supervised_learning",
+    "unsupervised_learning",
+    "reinforcement_learning",
+    "labeled_data",
+    "hidden_structure_discovery"
+  ]
+}

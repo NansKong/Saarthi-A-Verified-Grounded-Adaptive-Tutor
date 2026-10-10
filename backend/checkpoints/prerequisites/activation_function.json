@@ -1,0 +1,9 @@
+{
+  "concept_id": "activation_function",
+  "concept_name": "Activation Function",
+  "status": "completed",
+  "prerequisites": [
+    "neural_network",
+    "neural_networks"
+  ]
+}

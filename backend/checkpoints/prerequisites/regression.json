@@ -1,0 +1,8 @@
+{
+  "concept_id": "regression",
+  "concept_name": "Regression",
+  "status": "completed",
+  "prerequisites": [
+    "supervised_learning"
+  ]
+}

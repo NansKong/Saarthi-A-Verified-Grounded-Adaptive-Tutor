@@ -1,0 +1,15 @@
+{
+  "unit_id": "machine_learning_test_document_p1_c1",
+  "status": "completed",
+  "topic": "Machine Learning",
+  "subtopic": "Fundamentals",
+  "concept_ids": [
+    "machine_learning",
+    "artificial_intelligence",
+    "model",
+    "loss_function",
+    "optimization",
+    "parameters",
+    "predictions"
+  ]
+}

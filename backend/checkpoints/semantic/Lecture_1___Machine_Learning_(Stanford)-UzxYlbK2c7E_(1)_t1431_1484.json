@@ -1,0 +1,14 @@
+{
+  "unit_id": "Lecture 1 _ Machine Learning (Stanford)-UzxYlbK2c7E (1)_t1431_1484",
+  "status": "completed",
+  "topic": "Machine Learning Tools",
+  "subtopic": "Programming Environments",
+  "concept_ids": [
+    "matlab",
+    "octave",
+    "numerical_computing",
+    "matrix_operations",
+    "data_plotting",
+    "algorithm_implementation"
+  ]
+}
