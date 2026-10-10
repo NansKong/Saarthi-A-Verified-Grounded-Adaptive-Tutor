@@ -1,548 +1,1382 @@
-# Saarthi — A Verified Grounded Adaptive Tutor
+# Saarthi — A Verified-Grounded Adaptive Tutor
 
-Saarthi is an AI-powered learning system designed to transform scattered course material into a structured, source-aware knowledge base for personalized tutoring.
+Saarthi is an AI-powered adaptive tutoring system designed to learn directly from course material and build a grounded, structured knowledge base before generating educational responses.
 
-Instead of acting like a generic chatbot, Saarthi is being built to understand the student’s actual course material — including PDFs, lecture slides, diagrams, and eventually videos — while preserving exactly where every piece of information came from.
+Instead of relying only on a general-purpose LLM, Saarthi ingests actual learning resources such as textbooks, lecture slides, and videos, extracts their concepts, organizes relationships between them, and preserves source-level evidence such as page numbers, slide numbers, and timestamps.
 
-The larger goal is simple:
-
-> Turn raw course material into a verified, multimodal knowledge system that can later power grounded tutoring, adaptive quizzes, and personalized learning.
+The long-term goal is to create a tutor that can answer, explain, revise, and adapt to a learner while remaining grounded in verified course content.
 
 ---
 
-## Current Development Status
+## Current Development Stage
 
-This repository is currently focused on **Part 1: Multimodal Knowledge Base**.
+### Part 1 — Multimodal Knowledge Base
 
-The ingestion pipeline now supports:
+The current implementation focuses on building the knowledge layer behind Saarthi.
 
-- PDF upload and extraction
-- Page-level source preservation
-- Intelligent text chunking
-- PDF image and figure extraction
-- Groq-powered visual understanding
-- PPT/PPTX text extraction
-- Slide-level source preservation
-- PPT image extraction
-- Animated GIF conversion for vision processing
-- Unified multimodal `ContentUnit` generation
+It supports:
 
-The current pipeline can already convert both PDF and PowerPoint course material into structured text and visual units while preserving their original source location.
-
----
-
-## What Saarthi Solves
-
-Students rarely study from a single source.
-
-A typical course may contain:
-
-- Textbooks
-- Lecture PDFs
-- PowerPoint decks
-- Diagrams
-- Charts
-- Screenshots
-- Recorded lectures
-
-Most basic RAG systems mainly extract text and ignore much of the visual information.
-
-Saarthi takes a different approach.
-
-It treats course material as **multimodal knowledge**.
-
-That means:
-
-- A diagram on Slide 7 is not lost.
-- A graph on Page 14 is not ignored.
-- A visual can be interpreted and converted into searchable academic information.
-- Every extracted unit remembers exactly where it came from.
+- PDF textbooks and notes
+- PowerPoint presentations
+- Lecture videos
+- Text extraction
+- Image and diagram understanding
+- Video transcription
+- Keyframe extraction
+- Semantic concept extraction
+- Concept normalization and deduplication
+- Prerequisite relationship generation
+- Embedding generation
+- Vector search
+- Persistent knowledge storage
+- Source-grounded retrieval
+- Provider fallback
+- Checkpoint-based recovery
 
 ---
 
-## Current Architecture
+# Why Saarthi?
+
+Most AI tutors can produce explanations, but they do not necessarily know:
+
+- what material the student has actually studied
+- what concepts are part of a particular course
+- which concepts depend on others
+- where a concept appeared in the source material
+- whether an answer is grounded in the provided resources
+
+Saarthi addresses this by first transforming educational material into a structured multimodal knowledge base.
+
+The tutor layer can later use this knowledge base to generate explanations that are both personalized and traceable to the original course material.
+
+---
+
+# System Architecture
 
 ```text
-                COURSE MATERIAL
-                       |
-           +-----------+-----------+
-           |                       |
-          PDF                     PPTX
-           |                       |
-           v                       v
-     Text Extraction         Text Extraction
-      via PyMuPDF            via python-pptx
-           |                       |
-           v                       v
-        Chunking               Chunking
-           |                       |
-           +-----------+-----------+
-                       |
-                       v
-               Structured Text Units
-
-           PDF / PPT Visual Content
-                       |
-                       v
-                Image Extraction
-                       |
-                       v
-               Image Filtering
-                       |
-                       v
-              Groq Vision Model
-                       |
-                       v
-         Educational Visual Description
-                       |
-                       v
-               Visual Content Units
-
-                       |
-                       v
-              Unified Knowledge Units
+                PDF / PPTX / MP4
+                       │
+                       ▼
+             Multimodal Ingestion
+                       │
+        ┌──────────────┴──────────────┐
+        │                             │
+        ▼                             ▼
+   Text Extraction              Visual Extraction
+        │                             │
+        │                    Images / Keyframes
+        │                             │
+        │                             ▼
+        │                     Vision Understanding
+        │                             │
+        └──────────────┬──────────────┘
+                       │
+                       ▼
+                 ContentUnits
+                       │
+                       ▼
+              Semantic Extraction
+                       │
+                       ▼
+             Concept Normalization
+                       │
+                       ▼
+                Concept Registry
+                       │
+           ┌───────────┴───────────┐
+           │                       │
+           ▼                       ▼
+      Embeddings             Prerequisite Graph
+           │                       │
+           ▼                       ▼
+         Qdrant              Knowledge Graph
+           │                       │
+           └───────────┬───────────┘
+                       │
+                       ▼
+               Grounded Retrieval
+                       │
+                       ▼
+             Adaptive Tutor Layer
+                 (Next Phase)
 ```
 
 ---
 
-## Core Idea — Content Units
+# Core Features
 
-Every piece of course material is normalized into a common structure called a `ContentUnit`.
+## 1. Multimodal Document Ingestion
 
-### Example Text Unit
+Saarthi accepts multiple educational content formats without requiring manual preprocessing.
 
-```json
-{
-  "unit_id": "machine_learning_p14_c2",
-  "source_id": "machine_learning.pdf",
-  "source_type": "pdf",
-  "location": {
-    "page": 14
-  },
-  "chunk_index": 2,
-  "content_type": "text",
-  "text": "Gradient descent is an optimization algorithm...",
-  "visual_description": null,
-  "image_path": null,
-  "topic": null,
-  "subtopic": null,
-  "concept_ids": []
-}
-```
+### Supported Formats
 
-### Example Visual Unit
-
-```json
-{
-  "unit_id": "ann_slides_s7_img1",
-  "source_id": "ANN_slides.pptx",
-  "source_type": "slides",
-  "location": {
-    "slide": 7
-  },
-  "chunk_index": null,
-  "content_type": "visual",
-  "text": "",
-  "visual_description": "A neural network diagram showing an input layer, hidden layer, and output layer.",
-  "image_path": "extracted_images/ann_slides_s7_img1.png",
-  "topic": null,
-  "subtopic": null,
-  "concept_ids": []
-}
-```
-
-This shared structure allows later components of Saarthi to work with PDFs and slides in the same way.
-
----
-
-## Features Implemented So Far
-
-### 1. PDF Ingestion
-
-PDF files are processed using PyMuPDF.
-
-For every page, Saarthi extracts:
-
-- Text
-- Page number
-- Source filename
-- Source type
-- Structured content metadata
-
-Pages without extractable text are preserved instead of being silently discarded, allowing OCR or vision processing to be added later.
-
----
-
-### 2. Intelligent Text Chunking
-
-Large pages are split into smaller retrieval-friendly chunks.
-
-Each chunk preserves its original page number.
-
-Example:
-
-```text
-Page 14
-   |
-   +-- Chunk 1
-   +-- Chunk 2
-   +-- Chunk 3
-```
-
-All three chunks still point back to:
-
-```text
-Page 14
-```
-
-This improves retrieval quality while preserving exact source information.
-
----
-
-### 3. PDF Image & Diagram Extraction
-
-Saarthi extracts embedded images from PDFs and filters out very small decorative images.
-
-Useful visuals such as:
-
-- Graphs
-- Diagrams
-- Charts
-- Formulas
-- Flowcharts
-- Illustrations
-
-are passed to a Groq vision-capable model.
-
-The model converts the image into an academic description suitable for retrieval.
-
-Example:
-
-```text
-Visual Input:
-Gradient descent loss-surface diagram
-
-Generated Description:
-"A loss-surface diagram showing gradient descent iteratively moving toward the minimum."
-```
-
-Visuals without meaningful educational information can be ignored.
-
----
-
-### 4. PowerPoint Ingestion
-
-Saarthi also supports `.pptx` files.
-
-For every slide, the system extracts:
-
-- Slide text
-- Slide number
-- Embedded images
-- Source metadata
-
-Each slide is converted into structured text and visual units.
-
----
-
-### 5. PowerPoint Visual Understanding
-
-Images extracted from PowerPoint slides are passed through the same Groq-based visual understanding pipeline.
-
-This allows Saarthi to understand content that ordinary text extraction could miss.
-
-Examples include:
-
-- Neural network diagrams
-- Workflow diagrams
-- Architecture figures
-- Plots
-- Confusion matrices
-- Equations embedded as images
-
----
-
-### 6. Animated GIF Handling
-
-Some educational slide decks contain animated GIFs.
-
-Vision APIs may reject animated GIFs directly, so Saarthi automatically converts them before processing:
-
-```text
-GIF
- |
- v
-Extract first frame
- |
- v
-Convert to PNG
- |
- v
-Send to vision model
-```
-
-This prevents the ingestion pipeline from failing when an animated image appears inside a slide deck.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
+| Format | Processing |
 |---|---|
-| Backend API | FastAPI |
-| PDF Processing | PyMuPDF |
-| PowerPoint Processing | python-pptx |
-| Vision Processing | Groq |
-| Image Handling | Pillow |
-| Data Validation | Pydantic |
-| File Uploads | FastAPI UploadFile |
-| Server | Uvicorn |
-| Language | Python |
+| PDF | Text extraction, page-level grounding, embedded image extraction |
+| PPTX | Slide text extraction, image extraction, slide-level grounding |
+| MP4 | Audio extraction, transcription, keyframe extraction, timestamp grounding |
 
 ---
 
-## Project Structure
+# 2. ContentUnit Representation
 
-```text
-backend/
-|
-|-- app/
-|   |
-|   |-- api/
-|   |   `-- knowledge.py
-|   |
-|   |-- ingestion/
-|   |   |-- pdf_parser.py
-|   |   |-- pdf_image_extractor.py
-|   |   |-- pdf_pipeline.py
-|   |   |-- ppt_parser.py
-|   |   |-- ppt_image_extractor.py
-|   |   `-- ppt_pipeline.py
-|   |
-|   |-- processing/
-|   |   |-- chunker.py
-|   |   |-- visual_processor.py
-|   |   `-- ppt_visual_processor.py
-|   |
-|   |-- vision/
-|   |   `-- image_captioner.py
-|   |
-|   |-- schemas/
-|   |   `-- content_unit.py
-|   |
-|   `-- main.py
-|
-|-- uploads/
-|
-|-- extracted_images/
-|
-|-- requirements.txt
-`-- .env
-```
+Every extracted piece of knowledge is converted into a common `ContentUnit` representation.
 
----
+A ContentUnit may contain:
 
-## API
-
-### Upload Course Material
-
-```http
-POST /knowledge/upload
-```
-
-Currently supported formats:
-
-```text
-.pdf
-.pptx
-```
-
-### Example PDF Response
-
-```json
+```python
 {
-  "filename": "machine_learning.pdf",
-  "source_type": "pdf",
-  "status": "processed",
-  "total_pages": 18,
-  "total_slides": 0,
-  "text_unit_count": 52,
-  "visual_unit_count": 7,
-  "content_unit_count": 59,
-  "empty_units": 0
+    "unit_id": "...",
+    "source_id": "...",
+    "source_type": "pdf | slides | video",
+
+    "location": {
+        "page": 5
+    },
+
+    "content_type": "text | visual",
+
+    "text": "...",
+
+    "visual_description": "...",
+
+    "image_path": "...",
+
+    "topic": "...",
+
+    "subtopic": "...",
+
+    "concept_ids": [...]
 }
 ```
 
-### Example PowerPoint Response
+This allows Saarthi to process PDFs, slides, and videos through the same downstream semantic pipeline.
+
+---
+
+# 3. Source-Level Grounding
+
+Every ContentUnit preserves its original source location.
+
+### PDF
 
 ```json
 {
-  "filename": "ANN_Lecture.pptx",
-  "source_type": "slides",
-  "status": "processed",
-  "total_pages": 0,
-  "total_slides": 21,
-  "text_unit_count": 34,
-  "visual_unit_count": 9,
-  "content_unit_count": 43
+    "page": 12
+}
+```
+
+### Presentation
+
+```json
+{
+    "slide": 7
+}
+```
+
+### Video
+
+```json
+{
+    "timestamp": {
+        "start": 1973.9,
+        "end": 1973.9
+    }
+}
+```
+
+This allows future tutor responses to reference the material from which an explanation was derived.
+
+For example:
+
+```text
+According to Lecture 1 at approximately 32:53...
+```
+
+or:
+
+```text
+This concept is discussed on page 12 of the uploaded textbook.
+```
+
+---
+
+# 4. PDF Processing
+
+The PDF ingestion pipeline uses PyMuPDF for document parsing.
+
+It performs:
+
+```text
+PDF
+ │
+ ├── Extract page text
+ │
+ ├── Split text into semantic chunks
+ │
+ ├── Preserve page metadata
+ │
+ ├── Extract embedded images
+ │
+ ├── Analyze educational visuals
+ │
+ └── Generate ContentUnits
+```
+
+Text chunks remain linked to their original page.
+
+Embedded figures and diagrams can also become visual ContentUnits.
+
+---
+
+# 5. PowerPoint Processing
+
+Presentations are processed using `python-pptx`.
+
+The pipeline extracts:
+
+- slide text
+- slide images
+- slide numbers
+- visual descriptions
+
+Animated GIF images are converted to a usable static frame before analysis when required.
+
+Each extracted unit remains grounded to its slide.
+
+---
+
+# 6. Video Processing
+
+Videos are processed through both audio and visual pipelines.
+
+```text
+Video
+ │
+ ├── FFmpeg audio extraction
+ │
+ ├── Whisper transcription
+ │
+ ├── Timestamped transcript chunks
+ │
+ ├── Full-duration keyframe extraction
+ │
+ ├── Educational visual detection
+ │
+ ├── Vision-language analysis
+ │
+ └── Multimodal ContentUnits
+```
+
+---
+
+## Audio Processing
+
+FFmpeg extracts optimized audio from lecture videos.
+
+The audio is sent to Groq Whisper using:
+
+```text
+whisper-large-v3-turbo
+```
+
+Transcript segments are merged into approximately 45-second ContentUnits.
+
+Each transcript unit preserves start and end timestamps.
+
+---
+
+## Keyframe Extraction
+
+Rather than sampling only the beginning of long videos, Saarthi divides the entire video duration into temporal regions.
+
+Multiple candidate frames are examined within each region and a representative frame is selected using visual difference.
+
+Example:
+
+```text
+68-minute lecture
+      │
+      ▼
+12 temporal regions
+      │
+      ▼
+candidate frames per region
+      │
+      ▼
+visual-difference scoring
+      │
+      ▼
+representative keyframe
+```
+
+This ensures visual coverage across the complete lecture.
+
+---
+
+# 7. Educational Vision Understanding
+
+Extracted images and video keyframes are analyzed using a multimodal LLM.
+
+The system focuses on academically meaningful information such as:
+
+- diagrams
+- graphs
+- charts
+- equations
+- formulas
+- workflows
+- tables
+- labelled structures
+- technical illustrations
+- instructional text
+- relationships between concepts
+
+Non-educational elements such as logos, decorative backgrounds, classroom furniture, and branding are ignored.
+
+Frames without meaningful academic information can be classified as:
+
+```text
+NOT_EDUCATIONAL
+```
+
+and excluded from the knowledge base.
+
+---
+
+# 8. Semantic Extraction
+
+ContentUnits are enriched with structured semantic information.
+
+The semantic layer identifies:
+
+```text
+Topic
+Subtopic
+Concepts
+```
+
+Example:
+
+```json
+{
+    "topic": "Machine Learning",
+    "subtopic": "Supervised Learning",
+    "concepts": [
+        "Training Data",
+        "Classification",
+        "Regression"
+    ]
 }
 ```
 
 ---
 
-## Running the Project
+# 9. Batched Semantic Processing
 
-### 1. Clone the repository
+Semantic extraction is performed in batches instead of making one LLM request per ContentUnit.
 
-```bash
-git clone https://github.com/NansKong/Saarthi-A-Verified-Grounded-Adaptive-Tutor.git
+Example:
+
+```text
+5 ContentUnits
+      │
+      ▼
+1 Semantic Extraction Request
+      │
+      ▼
+Concept Normalization
 ```
 
-### 2. Move into the backend
+This significantly reduces:
 
-```bash
-cd Saarthi-A-Verified-Grounded-Adaptive-Tutor/backend
+- API requests
+- processing time
+- rate-limit pressure
+- LLM cost
+
+---
+
+# 10. Concept Normalization and Deduplication
+
+Different educational resources often describe the same concept differently.
+
+Examples:
+
+```text
+Neural Network
+Neural Networks
+
+Prediction
+Predictions
+
+Gradient Descent
+Gradient Descent Algorithm
 ```
 
-### 3. Create a virtual environment
+Saarthi attempts to map these variations to the same canonical concept.
 
-```bash
-python -m venv venv
+Normalization follows multiple stages:
+
+```text
+Incoming Concept
+      │
+      ▼
+Exact Match
+      │
+      ▼
+Alias Match
+      │
+      ▼
+Lexical Normalization
+      │
+      ▼
+Qdrant Semantic Candidates
+      │
+      ▼
+Batched LLM Verification
 ```
 
-### 4. Activate the environment on Windows
+This prevents the concept graph from becoming unnecessarily fragmented.
 
-```powershell
-.\venv\Scripts\Activate.ps1
+---
+
+# 11. Concept Registry
+
+Concepts are maintained in a centralized registry.
+
+Each concept stores:
+
+```python
+{
+    "concept_id": "...",
+    "name": "...",
+    "aliases": [...],
+    "topic": "...",
+    "subtopic": "...",
+    "evidence_units": [...],
+    "prerequisites": [...]
+}
 ```
 
-### 5. Install dependencies
+`evidence_units` connect concepts back to the original ContentUnits that introduced or explained them.
 
-```bash
-pip install -r requirements.txt
+---
+
+# 12. Prerequisite Knowledge Graph
+
+Saarthi builds prerequisite relationships between concepts.
+
+Example:
+
+```text
+Training Data
+      │
+      ▼
+Model Training
+      │
+      ▼
+Model Evaluation
+      │
+      ▼
+Model Deployment
 ```
 
-### 6. Create a `.env` file
+or:
 
-```env
-GROQ_API_KEY=your_groq_api_key
+```text
+Decision Trees
+      │
+      ▼
+Random Forests
 ```
 
-### 7. Run the FastAPI server
+Potential prerequisite candidates are retrieved using semantic similarity and verified through an LLM.
+
+Prerequisite processing is batched to reduce API usage.
+
+---
+
+# 13. Graph Safety
+
+The Concept Registry validates prerequisite relationships before adding them.
+
+It prevents:
+
+- self-referencing prerequisites
+- duplicate edges
+- invalid concept references
+- cyclic dependencies
+
+Example of an invalid graph:
+
+```text
+A → B → C → A
+```
+
+Saarthi detects and prevents such cycles.
+
+---
+
+# 14. Embeddings
+
+Saarthi currently uses:
+
+```text
+sentence-transformers/all-MiniLM-L6-v2
+```
+
+Embedding dimension:
+
+```text
+384
+```
+
+Embeddings are generated for both:
+
+- ContentUnits
+- Concepts
+
+These vectors enable semantic retrieval across the knowledge base.
+
+---
+
+# 15. Vector Database
+
+Saarthi currently uses Qdrant as its vector database.
+
+Collections:
+
+```text
+saarthi_content
+saarthi_concepts
+```
+
+### Content collection
+
+Stores:
+
+- text
+- visual descriptions
+- embeddings
+- source information
+- page/slide/timestamp metadata
+- topic
+- subtopic
+- concept IDs
+
+### Concept collection
+
+Stores:
+
+- concept names
+- aliases
+- topic
+- subtopic
+- evidence units
+- prerequisite relationships
+- embeddings
+
+---
+
+# 16. Persistent Concept Registry
+
+The in-memory Concept Registry is reconstructed from Qdrant whenever the FastAPI application starts.
+
+Startup flow:
+
+```text
+FastAPI Starts
+      │
+      ▼
+Qdrant Loaded
+      │
+      ▼
+Restore Concept Nodes
+      │
+      ▼
+Restore Prerequisite Edges
+      │
+      ▼
+Validate Graph
+      │
+      ▼
+Knowledge Base Ready
+```
+
+Concept restoration happens in two passes.
+
+### Pass 1
+
+Restore every concept node.
+
+### Pass 2
+
+Restore prerequisite relationships.
+
+This ensures prerequisite concepts exist before graph edges are recreated.
+
+---
+
+# 17. Checkpoint-Based Recovery
+
+Long processing tasks should not have to restart completely when an API provider becomes unavailable.
+
+Saarthi stores checkpoints for completed semantic and prerequisite work.
+
+Example:
+
+```text
+checkpoints/
+│
+├── semantic/
+│
+└── prerequisites/
+```
+
+If processing stops midway:
+
+```text
+Batch 1 ✅
+Batch 2 ✅
+Batch 3 ❌ Provider unavailable
+```
+
+the next run can restore completed batches and continue from the unfinished section.
+
+---
+
+# 18. LLM Provider Fallback
+
+Saarthi currently uses a provider fallback architecture.
+
+```text
+Groq
+ │
+ │ failure / rate limit
+ ▼
+Gemini
+ │
+ │ unavailable
+ ▼
+Deferred Processing
+```
+
+Groq is used as the primary provider.
+
+Gemini is used as a fallback when Groq becomes unavailable or rate-limited.
+
+The same architecture is used for both semantic processing and multimodal visual analysis.
+
+---
+
+# 19. Graceful Quota Handling
+
+LLM API quotas should not cause an uploaded course resource to disappear.
+
+If all configured providers become unavailable:
+
+```text
+Content extraction       ✅
+Embeddings               ✅
+Completed checkpoints    ✅
+Qdrant persistence       ✅
+
+Remaining semantic work  ⏸ Deferred
+Graph generation         ⏸ Deferred
+```
+
+The API can still return a successful response with a status such as:
+
+```json
+{
+    "semantic_status": "deferred_llm_unavailable",
+    "graph_status": "deferred_semantic_processing"
+}
+```
+
+This allows processing to resume later rather than failing the entire ingestion request.
+
+---
+
+# API
+
+The backend is built using FastAPI.
+
+Start the server with:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### 8. Open Swagger UI
+Then open:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
+for Swagger documentation.
+
 ---
 
-## Development Roadmap
+## Root
 
-### Completed
-
-```text
-[✓] FastAPI backend setup
-[✓] PDF ingestion
-[✓] PDF page tracking
-[✓] Text chunking
-[✓] PDF image extraction
-[✓] Groq visual captioning
-[✓] PPTX text extraction
-[✓] Slide-number preservation
-[✓] PPTX image extraction
-[✓] GIF-to-PNG fallback
-[✓] Unified text + visual ContentUnits
+```http
+GET /
 ```
 
-### Next
+Example:
 
-```text
-[ ] Lecture video ingestion
-[ ] Groq Whisper transcription
-[ ] Timestamp-preserving video chunks
-[ ] Lecture keyframe extraction
-[ ] Video visual understanding
-[ ] Topic extraction
-[ ] Subtopic extraction
-[ ] Concept identification
-[ ] Prerequisite graph generation
-[ ] Embeddings
-[ ] Vector database integration
+```json
+{
+    "message": "Saarthi Multimodal Knowledge Base API is running.",
+    "concepts_loaded": 337
+}
 ```
 
 ---
 
-## Where This Is Going
+## Upload Educational Material
 
-The Multimodal Knowledge Base is only the foundation.
+```http
+POST /knowledge/upload
+```
 
-Once ingestion is complete, Saarthi will use this structured content to build:
+Supported uploads:
 
 ```text
-Course Material
-      |
-      v
-Multimodal Knowledge Base
-      |
-      v
-Concept + Prerequisite Graph
-      |
-      v
-Source-Grounded Retrieval
-      |
-      v
-Verified Tutor
-      |
-      v
-Adaptive Assessment
-      |
-      v
-Learner Model
-      |
-      v
+.pdf
+.pptx
+.mp4
+```
+
+Example response:
+
+```json
+{
+    "filename": "machine_learning.pdf",
+    "source_type": "pdf",
+
+    "content_unit_count": 25,
+
+    "affected_concept_count": 18,
+
+    "concept_count": 120,
+
+    "edge_count": 34,
+
+    "has_cycles": false,
+
+    "semantic_status": "completed",
+
+    "graph_status": "completed"
+}
+```
+
+---
+
+## Concepts
+
+```http
+GET /concepts/
+```
+
+Returns the current concept registry.
+
+---
+
+## Concept Graph
+
+```http
+GET /graph/concept/{concept_id}
+```
+
+Example:
+
+```http
+GET /graph/concept/decision_trees
+```
+
+This can be used to inspect prerequisite relationships for a concept.
+
+---
+
+## Semantic Search
+
+```http
+GET /search/?q={query}&limit={limit}
+```
+
+Example:
+
+```http
+GET /search/?q=neural%20networks&limit=5
+```
+
+The search layer performs semantic retrieval over grounded ContentUnits.
+
+---
+
+# Project Structure
+
+```text
+backend/
+│
+├── app/
+│   │
+│   ├── main.py
+│   │
+│   ├── api/
+│   │   ├── knowledge.py
+│   │   ├── concepts.py
+│   │   ├── graph.py
+│   │   └── search.py
+│   │
+│   ├── schemas/
+│   │   └── content_unit.py
+│   │
+│   ├── ingestion/
+│   │   ├── pdf_parser.py
+│   │   ├── pdf_image_extractor.py
+│   │   ├── pdf_pipeline.py
+│   │   ├── ppt_parser.py
+│   │   ├── ppt_image_extractor.py
+│   │   ├── ppt_pipeline.py
+│   │   ├── audio_extractor.py
+│   │   ├── video_transcriber.py
+│   │   ├── keyframe_extractor.py
+│   │   └── video_pipeline.py
+│   │
+│   ├── processing/
+│   │   ├── chunker.py
+│   │   ├── transcript_chunker.py
+│   │   ├── semantic_processor.py
+│   │   ├── batch_semantic_extractor.py
+│   │   ├── concept_extractor.py
+│   │   ├── concept_normalizer.py
+│   │   ├── batch_concept_normalizer.py
+│   │   ├── concept_registry_processor.py
+│   │   ├── embedding_processor.py
+│   │   ├── concept_embedding_processor.py
+│   │   ├── batch_prerequisite_extractor.py
+│   │   └── knowledge_graph_builder.py
+│   │
+│   ├── knowledge/
+│   │   ├── concept_registry.py
+│   │   ├── course_registry.py
+│   │   ├── registry_persistence.py
+│   │   ├── graph_validator.py
+│   │   ├── graph_queries.py
+│   │   └── knowledge_base_builder.py
+│   │
+│   ├── embeddings/
+│   │   └── embedding_service.py
+│   │
+│   ├── vectorstore/
+│   │   ├── qdrant_service.py
+│   │   ├── content_store.py
+│   │   ├── content_search.py
+│   │   ├── concept_store.py
+│   │   └── concept_search.py
+│   │
+│   ├── vision/
+│   │   └── image_captioner.py
+│   │
+│   ├── llm/
+│   │   └── text_llm.py
+│   │
+│   └── checkpoints/
+│       └── checkpoint_service.py
+│
+├── checkpoints/
+├── uploads/
+├── extracted_audio/
+├── extracted_images/
+├── extracted_keyframes/
+├── qdrant_data/
+│
+├── .env
+├── requirements.txt
+└── README.md
+```
+
+Runtime folders are intentionally excluded from Git.
+
+---
+
+# Setup
+
+## 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd Saarthi-A-Verified-Grounded-Adaptive-Tutor/backend
+```
+
+---
+
+## 2. Create a Virtual Environment
+
+### Windows
+
+```powershell
+python -m venv venv
+venv\Scripts\Activate.ps1
+```
+
+### Linux / macOS
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+---
+
+## 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+# FFmpeg
+
+FFmpeg is required for video audio extraction.
+
+Verify installation using:
+
+```bash
+ffmpeg -version
+```
+
+If the command is not recognized, install FFmpeg and add it to your system PATH.
+
+---
+
+# Environment Variables
+
+Create:
+
+```text
+backend/.env
+```
+
+Do not commit this file.
+
+Example:
+
+```env
+GROQ_API_KEY=
+model=qwen/qwen3.8-27b
+
+GEMINI_API_KEY=
+GEMINI_TEXT_MODEL=gemini-3.8-flash
+GEMINI_VISION_MODEL=gemini-3.8-flash
+
+GEMINI_MIN_INTERVAL_SECONDS=13
+GEMINI_MAX_RETRY_WAIT_SECONDS=15
+
+HF_TOKEN=
+```
+
+`HF_TOKEN` is optional but may provide improved Hugging Face download limits.
+
+Never place production API keys directly inside source files or commit `.env` files.
+
+---
+
+# Running Saarthi
+
+From the `backend` directory:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Expected startup flow:
+
+```text
+[Qdrant] Collection exists: saarthi_content
+[Qdrant] Collection exists: saarthi_concepts
+
+[Saarthi Startup] Initializing knowledge base...
+
+[Registry Restore] Loading concepts from Qdrant...
+[Registry Restore] ... concept(s) restored.
+[Registry Restore] ... prerequisite edge(s) restored.
+[Registry Restore] Graph valid: True
+
+[Saarthi Startup] Knowledge base ready.
+
+Application startup complete.
+```
+
+---
+
+# Example Knowledge Flow
+
+Suppose a machine-learning lecture introduces:
+
+```text
+Supervised Learning
+Training Data
+Model Training
+Model Evaluation
+Random Forest
+```
+
+Saarthi may construct:
+
+```text
+Training Data
+     │
+     ▼
+Supervised Learning
+     │
+     ▼
+Model Training
+     │
+     ▼
+Model Evaluation
+```
+
+and:
+
+```text
+Decision Trees
+     │
+     ▼
+Random Forest
+```
+
+Each node remains connected to the PDF page, PowerPoint slide, or lecture timestamp where the concept was observed.
+
+---
+
+# Current Status
+
+## Multimodal Ingestion
+
+- [x] PDF ingestion
+- [x] PPTX ingestion
+- [x] MP4 ingestion
+- [x] PDF image extraction
+- [x] PPT image extraction
+- [x] Video transcription
+- [x] Video keyframe extraction
+- [x] Vision-based educational image understanding
+
+## Semantic Processing
+
+- [x] Topic extraction
+- [x] Subtopic extraction
+- [x] Concept extraction
+- [x] Batched semantic extraction
+- [x] Concept normalization
+- [x] Lexical deduplication
+- [x] Embedding-based candidate retrieval
+- [x] Batched semantic concept verification
+
+## Knowledge Graph
+
+- [x] Concept Registry
+- [x] Evidence linking
+- [x] Prerequisite generation
+- [x] Batched prerequisite extraction
+- [x] Cycle prevention
+- [x] Graph validation
+- [x] Graph persistence
+
+## Persistence
+
+- [x] ContentUnit storage in Qdrant
+- [x] Concept storage in Qdrant
+- [x] Deterministic concept IDs
+- [x] Persistent Qdrant collections
+- [x] Registry reconstruction on startup
+- [x] Prerequisite restoration
+
+## Reliability
+
+- [x] Semantic checkpoints
+- [x] Prerequisite checkpoints
+- [x] Groq → Gemini fallback
+- [x] Gemini rate-limit handling
+- [x] Deferred processing during provider failure
+- [x] Partial ingestion persistence
+- [x] HTTP success despite recoverable LLM exhaustion
+
+## Retrieval
+
+- [x] Content semantic search
+- [x] Concept semantic search
+- [x] Page-level provenance
+- [x] Slide-level provenance
+- [x] Timestamp-level provenance
+
+---
+
+# Current Limitations
+
+The current Part 1 implementation is functional but still has several areas planned for hardening.
+
+## Vision Cache
+
+Video keyframes may currently be analyzed again during repeated ingestion runs.
+
+A content-hash-based vision cache is planned to avoid repeated multimodal API calls.
+
+## Duplicate Video Frames
+
+Short videos can produce visually similar keyframes.
+
+A near-duplicate threshold can be added to avoid unnecessary vision requests.
+
+## Checkpoint Versioning
+
+Semantic checkpoints currently depend primarily on ContentUnit identity.
+
+Content hashing is planned so a checkpoint is invalidated automatically when underlying content changes.
+
+## Testing
+
+Some older development scripts were written as live integration checks rather than isolated pytest unit tests.
+
+The test architecture is being separated into:
+
+```text
+tests/
+├── unit/
+└── integration/
+```
+
+Unit tests will avoid live LLM and persistent vector database dependencies.
+
+---
+
+# Planned Improvements
+
+## Part 1 Hardening
+
+- [ ] Vision description caching
+- [ ] Near-duplicate keyframe filtering
+- [ ] Content-hash checkpoint validation
+- [ ] Source-level ingestion registry
+- [ ] Duplicate file detection
+- [ ] Source deletion / replacement
+- [ ] Knowledge-base consistency audit
+- [ ] Concept fragmentation audit
+- [ ] Dedicated unit and integration test suites
+
+---
+
+# Future Roadmap
+
+## Part 2 — Grounded Tutoring
+
+Use the knowledge base to answer questions using only relevant educational evidence.
+
+Planned capabilities:
+
+- grounded question answering
+- evidence citation
+- retrieval-augmented explanations
+- source-aware tutoring
+
+---
+
+## Part 3 — Adaptive Learning
+
+Introduce learner-specific modeling.
+
+Potential features:
+
+- concept mastery tracking
+- knowledge gaps
+- prerequisite gap detection
+- personalized revision recommendations
+- difficulty adaptation
+- explanation-style adaptation
+
+---
+
+## Part 4 — Assessment Engine
+
+Generate assessments grounded in uploaded course material.
+
+Potential features:
+
+- MCQs
+- descriptive questions
+- concept-specific quizzes
+- difficulty-controlled questions
+- misconception detection
+- adaptive testing
+
+---
+
+## Part 5 — Personalized Learning Path
+
+The final tutor can use:
+
+```text
+Course Knowledge Graph
+        +
+Learner Mastery Graph
+        +
+Prerequisite Relationships
+        +
+Retrieval Evidence
+        │
+        ▼
 Personalized Learning Path
 ```
 
-The goal is not to build another "chat with PDF" application.
-
-The goal is to build a tutor that understands:
-
-- what the course contains
-- where the information came from
-- what concepts depend on each other
-- what the student already understands
-- what the student should learn next
+This allows Saarthi to decide not only **what to explain**, but also **what the learner should study next and why**.
 
 ---
 
-## Why Saarthi?
+# Design Principles
 
-**Saarthi** means a guide — someone who helps navigate the path ahead.
+Saarthi is being built around five core principles.
 
-That idea fits the project perfectly.
+## Grounded
 
-The system is not supposed to replace course material.
+Responses should originate from actual educational material whenever possible.
 
-It is supposed to guide the student through it.
+## Traceable
+
+Knowledge should retain evidence pointing back to pages, slides, timestamps, and visuals.
+
+## Multimodal
+
+Educational understanding should not be limited to extracted text.
+
+## Recoverable
+
+External LLM failures should not destroy completed processing work.
+
+## Adaptive
+
+The final system should adapt the learning experience to the learner rather than providing identical tutoring to everyone.
 
 ---
 
-## Current Milestone
+# Security
 
-The current milestone successfully demonstrates:
+The following files and directories must never be committed:
 
-> **PDF + PPTX → text + visuals → source-aware structured knowledge units**
+```text
+.env
+venv/
+uploads/
+qdrant_data/
+checkpoints/
+extracted_audio/
+extracted_images/
+extracted_keyframes/
+__pycache__/
+```
 
-The next phase will extend the same pipeline to lecture videos, topic and concept extraction, prerequisite modelling, embeddings, and vector-based retrieval.
+API credentials should always be loaded through environment variables.
+
+If an API key is ever accidentally committed, it should be revoked and replaced immediately.
 
 ---
 
-## Contributors
+# Git Ignore Recommendations
 
-Built as part of the **Multimodal AI Hackathon 2026 — Track D: Personalized Tutoring & Adaptive Learning**.
+```gitignore
+backend/.env
+backend/venv/
+
+backend/uploads/
+backend/extracted_audio/
+backend/extracted_images/
+backend/extracted_keyframes/
+
+backend/qdrant_data/
+backend/checkpoints/
+
+**/__pycache__/
+*.pyc
+
+.pytest_cache/
+```
+
+---
+
+# Tech Stack
+
+## Backend
+
+- Python
+- FastAPI
+- Uvicorn
+- Pydantic
+
+## Document Processing
+
+- PyMuPDF
+- python-pptx
+- Pillow
+
+## Video / Audio
+
+- FFmpeg
+- OpenCV
+- Groq Whisper
+
+## AI / LLM
+
+- Groq
+- Gemini
+- Sentence Transformers
+
+## Embeddings
+
+- `sentence-transformers/all-MiniLM-L6-v2`
+
+## Vector Database
+
+- Qdrant
+
+## Storage / Recovery
+
+- Qdrant persistent local storage
+- JSON checkpoints
+
+---
+
+# Project Goal
+
+The objective of Saarthi is not simply to build another chatbot.
+
+The goal is to build an educational intelligence system that understands:
+
+```text
+What is being taught?
+        │
+What concepts exist?
+        │
+How are they connected?
+        │
+Where did the information come from?
+        │
+What does the learner understand?
+        │
+What should they learn next?
+```
+
+Part 1 establishes the foundation required to answer the first four questions.
+
+The adaptive tutor layer will build on this knowledge base to address the final two.
+
+---
+
+## Saarthi
+
+**Learn from the course. Understand the learner. Teach with evidence.**
