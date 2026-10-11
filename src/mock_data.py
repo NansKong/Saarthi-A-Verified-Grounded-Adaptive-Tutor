@@ -62,11 +62,18 @@ def _question(
 
 def get_question_concept_id(question):
     """Resolve the concept carried by a canonical Question record."""
-    if question.q_id.startswith("gen_"):
-        return question.q_id.removeprefix("gen_")
-    if question.q_id.startswith("sim_"):
-        return question.q_id.removeprefix("sim_").rsplit("_", 2)[0]
-    return QUESTION_CONCEPTS[question.q_id]
+    qid = getattr(question, "q_id", str(question))
+    if qid.startswith("gen_"):
+        return qid.removeprefix("gen_")
+    if qid.startswith("sim_"):
+        return qid.removeprefix("sim_").rsplit("_", 2)[0]
+    try:
+        from src.learner_model.live_course_data import LIVE_QUESTION_CONCEPTS
+        if qid in LIVE_QUESTION_CONCEPTS:
+            return LIVE_QUESTION_CONCEPTS[qid]
+    except ImportError:
+        pass
+    return QUESTION_CONCEPTS.get(qid, qid)
 
 
 # --- Decision 1: the scope -- six concepts with prerequisite links ---

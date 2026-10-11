@@ -18,7 +18,7 @@ class EmbeddingService:
         )
 
         self.dimension = (
-            self.model.get_embedding_dimension()
+            getattr(self.model, "get_sentence_embedding_dimension", lambda: 384)()
         )
 
         print(

@@ -9,6 +9,13 @@ It prints three things:
   3. An adaptive quiz being built, and mastery updating after each answer.
 """
 
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from src.mock_data import get_concepts, get_questions, get_question_concept_id
 from src.learner_model.bkt import LearnerModel, BKTParams
 from src.learner_model.adaptive import (

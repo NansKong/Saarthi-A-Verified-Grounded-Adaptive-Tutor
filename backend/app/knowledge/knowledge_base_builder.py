@@ -47,18 +47,18 @@ def _extract_content_units(
     pipeline_result
 ):
     """
-    Normalize the output returned by PDF/PPT/video
-    pipelines into a plain list of ContentUnit objects.
+    Normalize PDF/PPT/video pipeline output into
+    a plain ContentUnit list.
 
-    Supports:
-    - direct list
+    Supported:
+    - list
     - dictionary
     - tuple
     """
 
-    # -------------------------------------------------
+    # =================================================
     # Direct list
-    # -------------------------------------------------
+    # =================================================
 
     if isinstance(
         pipeline_result,
@@ -68,9 +68,9 @@ def _extract_content_units(
         return pipeline_result
 
 
-    # -------------------------------------------------
-    # Dictionary result
-    # -------------------------------------------------
+    # =================================================
+    # Dictionary
+    # =================================================
 
     if isinstance(
         pipeline_result,
@@ -86,8 +86,10 @@ def _extract_content_units(
 
         for key in possible_keys:
 
-            value = pipeline_result.get(
-                key
+            value = (
+                pipeline_result.get(
+                    key
+                )
             )
 
 
@@ -107,31 +109,14 @@ def _extract_content_units(
         )
 
 
-    # -------------------------------------------------
-    # Tuple result
-    #
-    # Some ingestion pipelines may return:
-    #
-    # (all_units, text_units, visual_units)
-    # -------------------------------------------------
+    # =================================================
+    # Tuple
+    # =================================================
 
     if isinstance(
         pipeline_result,
         tuple
     ):
-
-        for value in pipeline_result:
-
-            if isinstance(
-                value,
-                list
-            ):
-
-                # Prefer the largest list because
-                # all_units normally contains both
-                # text and visual units.
-                pass
-
 
         lists = [
             value
@@ -145,6 +130,8 @@ def _extract_content_units(
 
         if lists:
 
+            # all_units normally contains the
+            # largest number of entries.
             return max(
                 lists,
                 key=len
@@ -154,6 +141,46 @@ def _extract_content_units(
     raise TypeError(
         "Unsupported ingestion pipeline result: "
         f"{type(pipeline_result).__name__}"
+    )
+
+
+# =====================================================
+# Semantic pipeline status helper
+# =====================================================
+
+def _extract_semantic_status(
+    pipeline_result
+) -> tuple[str, str | None]:
+
+    if not isinstance(
+        pipeline_result,
+        dict
+    ):
+
+        return (
+            "completed",
+            None
+        )
+
+
+    semantic_status = (
+        pipeline_result.get(
+            "semantic_status",
+            "completed"
+        )
+    )
+
+
+    semantic_error = (
+        pipeline_result.get(
+            "semantic_error"
+        )
+    )
+
+
+    return (
+        semantic_status,
+        semantic_error
     )
 
 
@@ -169,7 +196,11 @@ def build_knowledge_base(
         file_path
     )
 
-    filename = path.name
+
+    filename = (
+        path.name
+    )
+
 
     extension = (
         path.suffix
@@ -185,7 +216,8 @@ def build_knowledge_base(
 
     print(
         f"[Knowledge Base] "
-        f"Processing: {filename}"
+        f"Processing: "
+        f"{filename}"
     )
 
     print(
@@ -193,9 +225,9 @@ def build_knowledge_base(
     )
 
 
-    # =================================================
+    # =====================================================
     # 1. INGEST SOURCE
-    # =================================================
+    # =====================================================
 
     if extension == ".pdf":
 
@@ -205,8 +237,12 @@ def build_knowledge_base(
         )
 
 
-        pipeline_result = process_pdf(
-            str(path)
+        pipeline_result = (
+            process_pdf(
+                str(
+                    path
+                )
+            )
         )
 
 
@@ -221,8 +257,12 @@ def build_knowledge_base(
         )
 
 
-        pipeline_result = process_ppt(
-            str(path)
+        pipeline_result = (
+            process_ppt(
+                str(
+                    path
+                )
+            )
         )
 
 
@@ -237,8 +277,12 @@ def build_knowledge_base(
         )
 
 
-        pipeline_result = process_video(
-            str(path)
+        pipeline_result = (
+            process_video(
+                str(
+                    path
+                )
+            )
         )
 
 
@@ -253,12 +297,21 @@ def build_knowledge_base(
         )
 
 
-    # =================================================
+    # =====================================================
     # 2. NORMALIZE PIPELINE RESULT
-    # =================================================
+    # =====================================================
 
-    all_units = _extract_content_units(
-        pipeline_result
+    all_units = (
+        _extract_content_units(
+            pipeline_result
+        )
+    )
+
+
+    semantic_status, semantic_error = (
+        _extract_semantic_status(
+            pipeline_result
+        )
     )
 
 
@@ -269,11 +322,20 @@ def build_knowledge_base(
     )
 
 
-    # =================================================
-    # 3. FIND AFFECTED CONCEPTS
-    # =================================================
+    print(
+        "[Knowledge Base] "
+        f"Semantic status: "
+        f"{semantic_status}"
+    )
 
-    affected_concept_ids = set()
+
+    # =====================================================
+    # 3. FIND AFFECTED CONCEPTS
+    # =====================================================
+
+    affected_concept_ids = (
+        set()
+    )
 
 
     for unit in all_units:
@@ -294,14 +356,18 @@ def build_knowledge_base(
 
     print(
         f"[Knowledge Base] "
-        f"Concepts affected by current upload: "
+        f"Concepts affected by "
+        f"current upload: "
         f"{len(affected_concept_ids)}"
     )
 
 
-    # =================================================
+    # =====================================================
     # 4. STORE CONTENT UNITS
-    # =================================================
+    #
+    # This now happens even if semantic enrichment was
+    # partially deferred by the video pipeline.
+    # =====================================================
 
     print(
         "[Knowledge Base] "
@@ -314,9 +380,9 @@ def build_knowledge_base(
     )
 
 
-    # =================================================
+    # =====================================================
     # 5. SYNC CONCEPTS BEFORE GRAPH
-    # =================================================
+    # =====================================================
 
     print(
         "[Knowledge Base] "
@@ -329,16 +395,54 @@ def build_knowledge_base(
     )
 
 
-    # =================================================
+    # =====================================================
     # 6. BUILD PREREQUISITE GRAPH
-    # =================================================
+    # =====================================================
 
-    graph_status = "completed"
+    graph_status = (
+        "completed"
+    )
 
     graph_error = None
 
 
-    if not affected_concept_ids:
+    # -----------------------------------------------------
+    # If semantic enrichment itself is deferred,
+    # don't try generating a graph from an incomplete
+    # concept set.
+    # -----------------------------------------------------
+
+    if semantic_status != "completed":
+
+        print(
+            "[Knowledge Base] "
+            "Semantic processing is incomplete."
+        )
+
+        print(
+            "[Knowledge Base] "
+            "Prerequisite graph generation deferred."
+        )
+
+
+        validation = validate_graph(
+            course_concept_registry
+        )
+
+
+        graph_status = (
+            "deferred_semantic_processing"
+        )
+
+
+        graph_error = (
+            "Prerequisite graph generation was "
+            "deferred because semantic enrichment "
+            "did not fully complete."
+        )
+
+
+    elif not affected_concept_ids:
 
         print(
             "[Knowledge Base] "
@@ -374,8 +478,13 @@ def build_knowledge_base(
         try:
 
             build_knowledge_graph(
-                registry=course_concept_registry,
-                concept_ids=affected_concept_ids
+                registry=(
+                    course_concept_registry
+                ),
+
+                concept_ids=(
+                    affected_concept_ids
+                )
             )
 
 
@@ -384,14 +493,16 @@ def build_knowledge_base(
             )
 
 
-            graph_status = "completed"
+            graph_status = (
+                "completed"
+            )
 
             graph_error = None
 
 
-        # ---------------------------------------------
-        # Compatibility with any old Groq-only paths
-        # ---------------------------------------------
+        # =================================================
+        # Compatibility with old direct Groq paths
+        # =================================================
 
         except RateLimitError:
 
@@ -403,13 +514,15 @@ def build_knowledge_base(
 
             print(
                 "[Knowledge Base] "
-                "Prerequisite graph generation deferred."
+                "Prerequisite graph generation "
+                "deferred."
             )
 
 
             print(
                 "[Knowledge Base] "
-                "Completed checkpoints are preserved."
+                "Completed checkpoints are "
+                "preserved."
             )
 
 
@@ -425,16 +538,17 @@ def build_knowledge_base(
 
             graph_error = (
                 "LLM rate limit reached. "
-                "Completed checkpoints were preserved "
-                "and processing can resume later."
+                "Completed checkpoints were "
+                "preserved and processing "
+                "can resume later."
             )
 
 
-        # ---------------------------------------------
+        # =================================================
         # Groq + Gemini unavailable
-        # ---------------------------------------------
+        # =================================================
 
-        except LLMUnavailableError:
+        except LLMUnavailableError as exc:
 
             print(
                 "[Knowledge Base] "
@@ -445,13 +559,15 @@ def build_knowledge_base(
 
             print(
                 "[Knowledge Base] "
-                "Prerequisite graph generation deferred."
+                "Prerequisite graph generation "
+                "deferred."
             )
 
 
             print(
                 "[Knowledge Base] "
-                "Completed checkpoints are preserved."
+                "Completed checkpoints are "
+                "preserved."
             )
 
 
@@ -465,17 +581,14 @@ def build_knowledge_base(
             )
 
 
-            graph_error = (
-                "All configured LLM providers were "
-                "temporarily unavailable. "
-                "Completed checkpoints were preserved "
-                "and processing can safely resume later."
+            graph_error = str(
+                exc
             )
 
 
-    # =================================================
+    # =====================================================
     # 7. SAVE PARTIAL / COMPLETE GRAPH
-    # =================================================
+    # =====================================================
 
     print(
         "[Knowledge Base] "
@@ -488,9 +601,9 @@ def build_knowledge_base(
     )
 
 
-    # =================================================
+    # =====================================================
     # 8. CONCEPT RESPONSE
-    # =================================================
+    # =====================================================
 
     concepts_response = []
 
@@ -535,9 +648,9 @@ def build_knowledge_base(
         )
 
 
-    # =================================================
+    # =====================================================
     # 9. GRAPH COUNTS
-    # =================================================
+    # =====================================================
 
     concept_count = len(
         concepts
@@ -552,9 +665,9 @@ def build_knowledge_base(
     )
 
 
-    # =================================================
+    # =====================================================
     # 10. RETURN
-    # =================================================
+    # =====================================================
 
     return {
         "filename":
@@ -564,10 +677,14 @@ def build_knowledge_base(
             source_type,
 
         "content_unit_count":
-            len(all_units),
+            len(
+                all_units
+            ),
 
         "affected_concept_count":
-            len(affected_concept_ids),
+            len(
+                affected_concept_ids
+            ),
 
         "concept_count":
             concept_count,
@@ -587,11 +704,29 @@ def build_knowledge_base(
                 []
             ),
 
+        # ---------------------------------------------
+        # Semantic stage
+        # ---------------------------------------------
+
+        "semantic_status":
+            semantic_status,
+
+        "semantic_error":
+            semantic_error,
+
+        # ---------------------------------------------
+        # Graph stage
+        # ---------------------------------------------
+
         "graph_status":
             graph_status,
 
         "graph_error":
             graph_error,
+
+        # ---------------------------------------------
+        # Data
+        # ---------------------------------------------
 
         "content_units":
             all_units,

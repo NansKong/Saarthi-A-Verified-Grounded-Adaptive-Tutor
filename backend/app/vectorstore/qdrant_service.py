@@ -18,22 +18,15 @@ EMBEDDING_DIMENSION = 384
 class QdrantService:
 
     def __init__(self):
-
-        QDRANT_PATH.mkdir(
-            exist_ok=True
-        )
-
-        self.client = QdrantClient(
-            path=str(QDRANT_PATH)
-        )
-
-        self.ensure_collection(
-            CONTENT_COLLECTION
-        )
-
-        self.ensure_collection(
-            CONCEPT_COLLECTION
-        )
+        QDRANT_PATH.mkdir(exist_ok=True)
+        try:
+            self.client = QdrantClient(path=str(QDRANT_PATH))
+            self.ensure_collection(CONTENT_COLLECTION)
+            self.ensure_collection(CONCEPT_COLLECTION)
+        except Exception:
+            self.client = QdrantClient(":memory:")
+            self.ensure_collection(CONTENT_COLLECTION)
+            self.ensure_collection(CONCEPT_COLLECTION)
 
 
     def ensure_collection(

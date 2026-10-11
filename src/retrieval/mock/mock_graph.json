@@ -1,0 +1,508 @@
+{
+  "topics": [
+    {
+      "topic_id": "t-calculus",
+      "name": "Calculus",
+      "parent_topic_id": null
+    },
+    {
+      "topic_id": "t-differentiation",
+      "name": "Differentiation",
+      "parent_topic_id": "t-calculus"
+    },
+    {
+      "topic_id": "t-optimization",
+      "name": "Optimization",
+      "parent_topic_id": null
+    },
+    {
+      "topic_id": "t-gradient-based",
+      "name": "Gradient-based optimization",
+      "parent_topic_id": "t-optimization"
+    },
+    {
+      "topic_id": "t-neural-networks",
+      "name": "Neural networks",
+      "parent_topic_id": null
+    },
+    {
+      "topic_id": "t-nn-architecture",
+      "name": "Network architecture",
+      "parent_topic_id": "t-neural-networks"
+    },
+    {
+      "topic_id": "t-nn-training",
+      "name": "Training neural networks",
+      "parent_topic_id": "t-neural-networks"
+    }
+  ],
+  "concepts": [
+    {
+      "concept_id": "c-derivative",
+      "name": "derivative",
+      "topic": "t-differentiation",
+      "prerequisites": [],
+      "evidence_units": [
+        "sl-03",
+        "sl-04",
+        "tb-0112",
+        "vd-0155"
+      ],
+      "definition": "How fast a function's output changes with its input; the slope of the tangent line.",
+      "aliases": [
+        "derivatives",
+        "rate of change"
+      ],
+      "prerequisite_edges": []
+    },
+    {
+      "concept_id": "c-derivative-rules",
+      "name": "derivative rules",
+      "topic": "t-differentiation",
+      "prerequisites": [
+        "c-derivative"
+      ],
+      "evidence_units": [
+        "sl-06"
+      ],
+      "definition": "Standard rules for differentiating: power rule, constant rule, sum rule.",
+      "aliases": [
+        "power rule",
+        "sum rule"
+      ],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-derivative",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "sl-06"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-chain-rule",
+      "name": "chain rule",
+      "topic": "t-differentiation",
+      "prerequisites": [
+        "c-derivative"
+      ],
+      "evidence_units": [
+        "sl-08",
+        "sl-09",
+        "tb-0118",
+        "vd-0440"
+      ],
+      "definition": "Derivative of a composition: dy/dx = f'(g(x)) * g'(x).",
+      "aliases": [],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-derivative",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "sl-08",
+            "vd-0440"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-gradient",
+      "name": "gradient",
+      "topic": "t-differentiation",
+      "prerequisites": [
+        "c-derivative"
+      ],
+      "evidence_units": [
+        "tb-0204"
+      ],
+      "definition": "Vector of partial derivatives; points in the direction of steepest increase.",
+      "aliases": [
+        "partial derivatives"
+      ],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-derivative",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "tb-0204"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-loss-function",
+      "name": "loss function",
+      "topic": "t-gradient-based",
+      "prerequisites": [],
+      "evidence_units": [
+        "sl-11"
+      ],
+      "definition": "Measures how wrong a model's predictions are; training minimises it.",
+      "aliases": [
+        "mean squared error",
+        "cost function"
+      ],
+      "prerequisite_edges": []
+    },
+    {
+      "concept_id": "c-gradient-descent",
+      "name": "gradient descent",
+      "topic": "t-gradient-based",
+      "prerequisites": [
+        "c-gradient",
+        "c-loss-function"
+      ],
+      "evidence_units": [
+        "sl-13",
+        "sl-14",
+        "tb-0207",
+        "vd-0761"
+      ],
+      "definition": "Minimises a loss by stepping opposite to the gradient: theta - alpha * gradient.",
+      "aliases": [],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-gradient",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "sl-13",
+            "sl-14",
+            "tb-0207",
+            "vd-0761"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        },
+        {
+          "concept_id": "c-loss-function",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "sl-13"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-learning-rate",
+      "name": "learning rate",
+      "topic": "t-gradient-based",
+      "prerequisites": [
+        "c-gradient-descent"
+      ],
+      "evidence_units": [
+        "sl-15",
+        "tb-0209",
+        "vd-1085"
+      ],
+      "definition": "Step size of gradient descent; too small is slow, too large overshoots.",
+      "aliases": [
+        "step size",
+        "alpha"
+      ],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-gradient-descent",
+          "confidence": 0.65,
+          "validated": true,
+          "evidence_units": [],
+          "llm_confidence": 0.9,
+          "signals": [
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-gd-variants",
+      "name": "gradient descent variants",
+      "topic": "t-gradient-based",
+      "prerequisites": [
+        "c-gradient-descent"
+      ],
+      "evidence_units": [
+        "sl-16"
+      ],
+      "definition": "Batch, stochastic and mini-batch gradient descent differ in how much data each step uses.",
+      "aliases": [
+        "stochastic gradient descent",
+        "mini-batch gradient descent",
+        "batch gradient descent"
+      ],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-gradient-descent",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "sl-16"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-neural-network",
+      "name": "neural network",
+      "topic": "t-nn-architecture",
+      "prerequisites": [],
+      "evidence_units": [
+        "sl-19"
+      ],
+      "definition": "Layers of neurons computing weighted sums plus bias, followed by an activation function.",
+      "aliases": [
+        "neural networks",
+        "neuron",
+        "feedforward network"
+      ],
+      "prerequisite_edges": []
+    },
+    {
+      "concept_id": "c-activation-function",
+      "name": "activation function",
+      "topic": "t-nn-architecture",
+      "prerequisites": [
+        "c-neural-network"
+      ],
+      "evidence_units": [
+        "sl-20"
+      ],
+      "definition": "Non-linear function applied to a neuron's output; without it layers collapse to a linear map.",
+      "aliases": [
+        "relu",
+        "sigmoid",
+        "non-linear activation"
+      ],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-neural-network",
+          "confidence": 0.65,
+          "validated": true,
+          "evidence_units": [],
+          "llm_confidence": 0.9,
+          "signals": [
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-universal-approximation",
+      "name": "universal approximation theorem",
+      "topic": "t-nn-architecture",
+      "prerequisites": [
+        "c-neural-network",
+        "c-activation-function"
+      ],
+      "evidence_units": [
+        "tb-0231"
+      ],
+      "definition": "A single hidden layer with non-linear activation can approximate any continuous function.",
+      "aliases": [],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-neural-network",
+          "confidence": 0.75,
+          "validated": true,
+          "evidence_units": [
+            "tb-0231"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention"
+          ]
+        },
+        {
+          "concept_id": "c-activation-function",
+          "confidence": 0.75,
+          "validated": true,
+          "evidence_units": [
+            "tb-0231"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-backpropagation",
+      "name": "backpropagation",
+      "topic": "t-nn-training",
+      "prerequisites": [
+        "c-chain-rule",
+        "c-neural-network",
+        "c-gradient-descent"
+      ],
+      "evidence_units": [
+        "sl-22",
+        "tb-0236",
+        "vd-1380"
+      ],
+      "definition": "Chain rule applied backward through the network to get all weight gradients efficiently.",
+      "aliases": [
+        "backprop"
+      ],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-chain-rule",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "sl-22",
+            "tb-0236",
+            "vd-1380"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        },
+        {
+          "concept_id": "c-neural-network",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "vd-1380"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        },
+        {
+          "concept_id": "c-gradient-descent",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "sl-22",
+            "vd-1380"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-training-loop",
+      "name": "training loop",
+      "topic": "t-nn-training",
+      "prerequisites": [
+        "c-backpropagation",
+        "c-loss-function",
+        "c-gradient-descent"
+      ],
+      "evidence_units": [
+        "sl-23"
+      ],
+      "definition": "Forward pass, loss, backward pass, weight update; repeated for many epochs.",
+      "aliases": [
+        "epoch"
+      ],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-backpropagation",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "sl-23"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        },
+        {
+          "concept_id": "c-loss-function",
+          "confidence": 0.65,
+          "validated": true,
+          "evidence_units": [],
+          "llm_confidence": 0.9,
+          "signals": [
+            "order"
+          ]
+        },
+        {
+          "concept_id": "c-gradient-descent",
+          "confidence": 0.95,
+          "validated": true,
+          "evidence_units": [
+            "sl-23"
+          ],
+          "llm_confidence": 0.9,
+          "signals": [
+            "mention",
+            "order"
+          ]
+        }
+      ]
+    },
+    {
+      "concept_id": "c-overfitting",
+      "name": "overfitting",
+      "topic": "t-nn-training",
+      "prerequisites": [
+        "c-training-loop"
+      ],
+      "evidence_units": [
+        "sl-25"
+      ],
+      "definition": "Fitting training noise so the model does poorly on new data.",
+      "aliases": [
+        "regularization",
+        "early stopping"
+      ],
+      "prerequisite_edges": [
+        {
+          "concept_id": "c-training-loop",
+          "confidence": 0.65,
+          "validated": true,
+          "evidence_units": [],
+          "llm_confidence": 0.9,
+          "signals": [
+            "order"
+          ]
+        }
+      ]
+    }
+  ]
+}

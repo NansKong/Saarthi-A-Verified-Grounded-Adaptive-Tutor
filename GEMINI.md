@@ -7,6 +7,8 @@
   1. Check remote status: `git fetch origin`
   2. Verify current branch status and check for incoming changes from collaborators: `git status` or `git log origin/main -n 5`
   3. Avoid overwrite conflicts by ensuring clean synchronization.
+- **GITHUB UPDATE / PUSH RULE**:
+  Do NOT commit or push to GitHub automatically after edits. Keep all work local until the USER explicitly instructs to commit or push.
 
 ---
 

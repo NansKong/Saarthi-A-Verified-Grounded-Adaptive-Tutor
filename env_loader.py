@@ -1,7 +1,11 @@
-"""Load local Pod C configuration without storing secrets in source code."""
+"""Load local configuration and ensure repository root is in sys.path."""
 
+import sys
+from pathlib import Path
 from dotenv import load_dotenv
 
-# The local .env is the project's source of truth. This also replaces stale
-# keys exported earlier in the same PowerShell session.
-load_dotenv(override=True)
+REPO_ROOT = Path(__file__).resolve().parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+load_dotenv(REPO_ROOT / ".env", override=True)

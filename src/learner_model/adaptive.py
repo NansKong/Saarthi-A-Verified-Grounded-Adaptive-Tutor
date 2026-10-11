@@ -57,25 +57,58 @@ def pick_questions_for_concept(questions, concept_id, target_difficulty, used_id
     return pool[:n]
 
 
-def build_quiz(concepts, masteries, questions, used_ids=None, size=QUIZ_SIZE):
-    """Build an adaptive quiz: repeatedly pick the next best concept and one question."""
+def build_quiz(
+    concepts,
+    masteries,
+    questions,
+    used_ids=None,
+    size=QUIZ_SIZE,
+    target_difficulty=None,
+    target_concept=None,
+):
+    """Build a quiz: repeatedly pick concepts and questions tailored to mastery or user preferences.
+    
+    If target_difficulty (1-5) is provided, filters/prioritizes questions with that exact difficulty.
+    If target_concept is provided, prioritizes questions belonging to that concept.
+    """
     used_ids = set(used_ids or [])
     quiz = []
     local_masteries = dict(masteries)  # copy; we do not mutate the real model here
+
+    # Filter pool by target_concept if requested
+    concept_filtered_pool = questions
+    if target_concept:
+        concept_pool = [q for q in questions if get_question_concept_id(q) == target_concept]
+        if concept_pool:
+            concept_filtered_pool = concept_pool
+
+    # If target_difficulty is given and we have questions with exact difficulty, prioritize them
     for _ in range(size):
-        cid = select_next_concept(concepts, local_masteries)
-        diff = choose_difficulty(local_masteries.get(cid, 0.0))
-        picked = pick_questions_for_concept(questions, cid, diff, used_ids, n=1)
+        if target_concept:
+            cid = target_concept
+        else:
+            cid = select_next_concept(concepts, local_masteries)
+
+        diff = target_difficulty if target_difficulty is not None else choose_difficulty(local_masteries.get(cid, 0.0))
+        picked = pick_questions_for_concept(concept_filtered_pool, cid, diff, used_ids, n=1)
+
         if not picked:
-            # nothing left for this concept; try any remaining verified question
-            remaining = [q for q in questions if q.verified and q.q_id not in used_ids]
+            # Fallback 1: any unused question in concept_filtered_pool closest to target difficulty
+            remaining = [q for q in concept_filtered_pool if q.verified and q.q_id not in used_ids]
+            if not remaining:
+                # If exhausted, allow reusing from concept_filtered_pool
+                remaining = [q for q in concept_filtered_pool if q.verified]
+            if not remaining:
+                # Fallback to any question in global questions
+                remaining = [q for q in questions if q.verified]
             if not remaining:
                 break
+            remaining.sort(key=lambda q: abs(q.difficulty - diff))
             picked = [remaining[0]]
+
         q = picked[0]
         quiz.append(q)
         used_ids.add(q.q_id)
-        # pretend the student is at their current mastery for planning purposes
         local_masteries[cid] = min(1.0, local_masteries.get(cid, 0.0) + 0.05)
     return quiz
 
