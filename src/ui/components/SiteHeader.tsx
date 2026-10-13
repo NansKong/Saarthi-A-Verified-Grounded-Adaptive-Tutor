@@ -50,15 +50,17 @@ export function SiteHeader() {
 
   return (
     <header
-      className={`shrink-0 w-full z-40 flex justify-center transition-all duration-300 ease-out ${
-        isScrolled ? "pt-3 px-4 sm:px-6 sticky top-0" : "pt-0 px-0 sticky top-0"
+      className={`shrink-0 w-full z-40 sticky top-0 flex justify-center transition-all duration-300 ease-out ${
+        isScrolled
+          ? "pt-3 px-4 sm:px-6 bg-transparent pointer-events-none"
+          : "pt-0 px-0 bg-white/80 dark:bg-[#06090e]/80 backdrop-blur-xl"
       }`}
     >
       <div
         className={`transition-all duration-300 ease-out flex items-center justify-between ${
           isScrolled
-            ? "w-full max-w-4xl lg:max-w-5xl h-14 px-4 sm:px-6 rounded-full bg-white/85 dark:bg-[#0c111c]/85 backdrop-blur-2xl border border-zinc-200/90 dark:border-white/[0.12] shadow-xl shadow-black/5 dark:shadow-black/60"
-            : "w-full max-w-7xl h-16 px-4 sm:px-6 lg:px-8 border-b border-zinc-200/80 dark:border-white/[0.08] bg-white/80 dark:bg-[#06090e]/80 backdrop-blur-xl"
+            ? "w-full max-w-4xl lg:max-w-5xl h-14 px-4 sm:px-6 rounded-full bg-white/85 dark:bg-[#0c111c]/85 backdrop-blur-2xl border border-zinc-200/90 dark:border-white/[0.12] shadow-xl shadow-black/5 dark:shadow-black/60 pointer-events-auto"
+            : "w-full max-w-7xl h-16 px-4 sm:px-6 lg:px-8"
         }`}
       >
         

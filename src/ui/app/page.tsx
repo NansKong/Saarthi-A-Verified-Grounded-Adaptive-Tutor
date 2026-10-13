@@ -271,7 +271,7 @@ export default function LandingPage() {
                   </p>
                   <div className="mt-1.5 flex items-center gap-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
                     <Calculator className="w-3 h-3" />
-                    <span>SymPy validated: 36</span>
+                    <span>Formally verified: 36</span>
                   </div>
                 </div>
               </div>
@@ -297,7 +297,7 @@ export default function LandingPage() {
             Built Across 4 Dedicated Workspaces
           </h2>
           <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mt-2">
-            Each pod component has its own dedicated page so you can inspect and grade every layer.
+            Each component provides a dedicated view so you can explore every layer.
           </p>
         </div>
 
@@ -333,7 +333,7 @@ export default function LandingPage() {
               <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-purple-500 transition-colors" />
             </h3>
             <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-              NetworkX prerequisite hierarchy linking concepts to exact evidence units with backward-walk remediation.
+              Curriculum prerequisite hierarchy linking concepts to exact evidence units with backward-walk remediation.
             </p>
           </Link>
 
@@ -350,7 +350,7 @@ export default function LandingPage() {
               <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-emerald-500 transition-colors" />
             </h3>
             <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-              Dual-LLM generation + SymPy math verification. Real-time Bayesian Knowledge Tracing updates per topic.
+              Dual model generation with automated mathematical checking. Real-time adaptive mastery tracing per topic.
             </p>
           </Link>
 
@@ -376,7 +376,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="mt-auto py-8 border-t border-zinc-200 dark:border-white/[0.08] text-center text-xs text-zinc-500 font-mono">
-        <p>Saarthi · Verified-Grounded Adaptive Tutor · Multimodal AI Hackathon 2026 (Track D)</p>
+        <p>Saarthi · Verified-Grounded Adaptive Tutor</p>
       </footer>
 
       {/* Citation Drawer Modal */}

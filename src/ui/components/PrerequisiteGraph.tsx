@@ -31,7 +31,7 @@ export function PrerequisiteGraph({
       </div>
 
       <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 mb-3 leading-relaxed">
-        NetworkX prerequisite DAG derived from lecture evidence. Mastering upstream concepts unlocks advanced topics.
+        Prerequisite dependency graph derived from lecture evidence. Mastering upstream concepts unlocks advanced topics.
       </p>
 
       {/* DAG Node Chain */}

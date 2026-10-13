@@ -263,7 +263,7 @@ export default function ChatPage() {
         id: `err_${Date.now()}`,
         role: "assistant",
         content:
-          "⚠️ Unable to connect to the Saarthi Pod B reasoning service. Please check that the backend is running (`uvicorn src.api.service:app`).",
+          "⚠️ Unable to connect to the Saarthi reasoning service. Please check that the backend is running (`uvicorn src.api.service:app`).",
         status: "refused",
         created_at: new Date().toISOString(),
       };
@@ -294,31 +294,35 @@ export default function ChatPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleUploadSuccess = (newUnit: ContentUnit) => {
+  const handleUploadSuccess = (unitsInput: ContentUnit | ContentUnit[]) => {
     setIsUploadModalOpen(false);
     setSidebarRefresh((prev) => prev + 1);
+
+    const unitsArray = Array.isArray(unitsInput) ? unitsInput : [unitsInput];
+    if (unitsArray.length === 0) return;
+
+    const sourceNames = Array.from(new Set(unitsArray.map((u) => `\`${u.source_id}\``))).join(", ");
+    const isMulti = unitsArray.length > 1;
 
     const tutorNotice: MessageItem = {
       id: `notice_${Date.now()}`,
       role: "assistant",
-      content: `📥 **New Course Document Ingested:** \`${newUnit.source_id}\` has been parsed and indexed by Pod A into the hybrid vector store. You can now ask questions directly grounded in this material.`,
-      citations: [
-        {
-          unit_id: newUnit.unit_id,
-          source: newUnit.source_id,
-          label: newUnit.location.slide
-            ? `Slide ${newUnit.location.slide}`
-            : newUnit.location.timestamp || "Section 1",
-          open_url: "#",
-          location: {
-            page: newUnit.location.page,
-            slide: newUnit.location.slide,
-            timestamp: newUnit.location.timestamp,
-          },
-          excerpt: newUnit.text,
-          diagram_caption: newUnit.image_caption,
+      content: `📥 **New Course Material${isMulti ? "s" : ""} Ingested (${unitsArray.length} file${isMulti ? "s" : ""}):** ${sourceNames} ${isMulti ? "have" : "has"} been indexed into the grounded knowledge store. You can now ask questions directly grounded in this material.`,
+      citations: unitsArray.map((u) => ({
+        unit_id: u.unit_id,
+        source: u.source_id,
+        label: u.location.slide
+          ? `Slide ${u.location.slide}`
+          : u.location.timestamp || `Page ${u.location.page || 1}`,
+        open_url: "#",
+        location: {
+          page: u.location.page,
+          slide: u.location.slide,
+          timestamp: u.location.timestamp,
         },
-      ],
+        excerpt: u.text,
+        diagram_caption: u.image_caption,
+      })),
       status: "grounded",
       created_at: new Date().toISOString(),
     };
@@ -386,11 +390,10 @@ export default function ChatPage() {
 
               <button
                 onClick={() => setShowEvidenceInspector((prev) => !prev)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                  showEvidenceInspector
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${showEvidenceInspector
                     ? "bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30"
                     : "bg-zinc-100/80 dark:bg-white/[0.03] text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-white/[0.08] hover:text-zinc-950 dark:hover:text-white"
-                }`}
+                  }`}
                 title="Toggle Evidence Inspector"
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -473,7 +476,7 @@ export default function ChatPage() {
                             Have new lecture documents?
                           </h4>
                           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                            Upload lecture slides (PDF/PPTX) or videos to index them into Pod B.
+                            Upload lecture slides (PDF/PPTX) or videos to index them into your course knowledge base.
                           </p>
                         </div>
                       </div>
@@ -490,9 +493,8 @@ export default function ChatPage() {
                   messages.map((msg) => (
                     <div
                       key={msg.id}
-                      className={`flex flex-col space-y-1.5 animate-fadeIn ${
-                        msg.role === "user" ? "items-end" : "items-start"
-                      }`}
+                      className={`flex flex-col space-y-1.5 animate-fadeIn ${msg.role === "user" ? "items-end" : "items-start"
+                        }`}
                     >
                       {/* Message Label */}
                       <div className="flex items-center gap-2 px-1">
@@ -540,11 +542,10 @@ export default function ChatPage() {
                         </div>
                       ) : (
                         <div
-                          className={`max-w-[92%] sm:max-w-[85%] p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed space-y-3 relative group transition-colors ${
-                            msg.role === "user"
+                          className={`max-w-[92%] sm:max-w-[85%] p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed space-y-3 relative group transition-colors ${msg.role === "user"
                               ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/15 rounded-tr-xs"
                               : "bg-white dark:bg-[#0f1526] border border-zinc-200/90 dark:border-white/[0.08] text-zinc-800 dark:text-zinc-200 shadow-2xs rounded-tl-xs"
-                          }`}
+                            }`}
                         >
                           <div className="whitespace-pre-line leading-relaxed">{msg.content}</div>
 
@@ -641,7 +642,7 @@ export default function ChatPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-zinc-500 dark:text-zinc-400 font-medium">Retriever</span>
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
-                        Pod B Hybrid Search
+                        Hybrid Vector Search
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -753,17 +754,15 @@ export default function ChatPage() {
                   <button
                     type="button"
                     onClick={() => setAllowOutsideKnowledge((prev) => !prev)}
-                    className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      allowOutsideKnowledge
+                    className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${allowOutsideKnowledge
                         ? "bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-300 border border-amber-300 dark:border-amber-500/25"
                         : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.04]"
-                    }`}
+                      }`}
                     title="When enabled, allows general AI reasoning when material is missing"
                   >
                     <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        allowOutsideKnowledge ? "bg-amber-500" : "bg-zinc-400 dark:bg-zinc-600"
-                      }`}
+                      className={`w-1.5 h-1.5 rounded-full ${allowOutsideKnowledge ? "bg-amber-500" : "bg-zinc-400 dark:bg-zinc-600"
+                        }`}
                     />
                     <span>Outside Knowledge</span>
                   </button>
@@ -787,7 +786,7 @@ export default function ChatPage() {
 
             <div className="text-center mt-1.5">
               <p className="text-[10px] text-zinc-500 dark:text-zinc-500 font-medium">
-                ⚡ Grounded in uploaded course materials with Pod B hybrid retrieval & dual verification.
+                Grounded in uploaded course materials with verified citations.
               </p>
             </div>
           </div>

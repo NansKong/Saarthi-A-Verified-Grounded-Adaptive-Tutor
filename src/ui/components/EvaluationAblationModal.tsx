@@ -36,7 +36,7 @@ export function EvaluationAblationModal({
                   System Evaluation & Benchmark Bench
                 </h3>
                 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 dark:border-indigo-500/25">
-                  Track D Rubric
+                  Empirical Benchmark
                 </span>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">

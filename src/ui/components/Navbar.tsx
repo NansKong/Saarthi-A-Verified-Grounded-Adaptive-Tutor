@@ -33,7 +33,7 @@ export function Navbar({
               </span>
             </div>
             <p className="text-[11px] text-zinc-400 hidden sm:block">
-              Multimodal Adaptive Tutor · Track D
+              Multimodal Adaptive Tutor
             </p>
           </div>
         </div>

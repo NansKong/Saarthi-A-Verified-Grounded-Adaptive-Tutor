@@ -226,7 +226,7 @@ export function LearnerModelArena({
             </span>
             <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-500/10 dark:teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/20 dark:border-teal-500/30">
               <Calculator className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-              SymPy Validated
+              Formally Verified
             </span>
             <span className={`text-xs font-bold px-2 py-0.5 rounded-md ml-auto border ${
               activeQuestion.difficulty === 1

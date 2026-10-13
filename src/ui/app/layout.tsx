@@ -44,7 +44,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${geistSans.className} min-h-full flex flex-col bg-[#fafafa] dark:bg-[#06090e] text-zinc-900 dark:text-[#f3f4f6] transition-colors`}>
+      <body suppressHydrationWarning className={`${geistSans.className} min-h-full flex flex-col bg-[#fafafa] dark:bg-[#06090e] text-zinc-900 dark:text-[#f3f4f6] transition-colors`}>
         {children}
       </body>
     </html>

@@ -76,7 +76,7 @@ export default function BenchmarkPage() {
               </span>
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Fulfilling Track D Rubric (35% total: 20% Personalization + 15% System Evaluation). We measure personalization empirically using active course concepts.
+              Empirical assessment measuring learning curve efficiency, question verification, and personalization across active course concepts.
             </p>
           </div>
 

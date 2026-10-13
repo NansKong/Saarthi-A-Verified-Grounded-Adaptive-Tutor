@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any, Literal
 
 from fastapi import FastAPI, APIRouter, File, UploadFile, HTTPException, Query, Request
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -497,94 +498,250 @@ def pod_a_to_pod_b_unit(u) -> PodBContentUnit:
 
 
 @app.post("/ingest/upload", tags=["Ingestion"])
-async def upload_material(file: UploadFile = File(...)):
+async def upload_material(
+    file: Optional[UploadFile] = File(None),
+    files: Optional[List[UploadFile]] = File(None),
+):
     """
-    Ingest a PDF, PowerPoint, or Video into atomic ContentUnits using Pod A's pipelines.
+    Ingest up to 10 course materials (PDF, PPTX, Images, Video) into atomic ContentUnits.
+    Enforces that videos must be uploaded individually by themselves.
     Updates the active retrieval store and knowledge graph dynamically.
     """
-    filename = file.filename or "uploaded_document"
-    dest = UPLOAD_DIR / filename
-    with open(dest, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    upload_list: List[UploadFile] = []
+    if files:
+        upload_list.extend(files)
+    if file:
+        upload_list.append(file)
 
-    suffix = dest.suffix.lower()
-    pod_a_units = []
+    if not upload_list:
+        raise HTTPException(status_code=400, detail="No files provided for upload.")
+
+    if len(upload_list) > 10:
+        raise HTTPException(status_code=400, detail="Maximum limit is 10 files per upload batch.")
+
+    video_exts = {".mp4", ".mov", ".webm", ".avi", ".mkv", ".mp3", ".wav"}
+    has_video = any(Path(f.filename or "").suffix.lower() in video_exts for f in upload_list)
+    if has_video and len(upload_list) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Videos require dedicated Whisper audio transcription and keyframe alignment, and must be uploaded individually by themselves."
+        )
+
+    all_units_to_add = []
+    processed_files = []
 
     try:
-        if suffix in [".ppt", ".pptx"]:
-            pod_a_units = extract_ppt_content(str(dest))
-        elif suffix == ".pdf":
-            pod_a_units = extract_pdf_content(str(dest))
-        elif suffix in [".mp4", ".mp3", ".wav"]:
-            try:
-                from src.ingestion.ingestion.video_pipeline import process_video
-                v_res = process_video(str(dest))
-                pod_a_units = v_res.get("all_units", [])
-            except Exception as e:
-                log.warning(f"Video pipeline error: {e}")
-        else:
-            content = dest.read_text(encoding="utf-8", errors="ignore")
-            chunks = chunk_text(content) if chunk_text else [content]
-            from src.ingestion.schemas.content_unit import ContentUnit as PodAUnit
-            for c_idx, ch in enumerate(chunks, start=1):
+        for uploaded_file in upload_list:
+            filename = uploaded_file.filename or "uploaded_document"
+            dest = UPLOAD_DIR / filename
+            with open(dest, "wb") as f:
+                shutil.copyfileobj(uploaded_file.file, f)
+
+            suffix = dest.suffix.lower()
+            pod_a_units = []
+
+            if suffix in [".ppt", ".pptx"]:
+                pod_a_units = extract_ppt_content(str(dest))
+            elif suffix == ".pdf":
+                pod_a_units = extract_pdf_content(str(dest))
+            elif suffix in video_exts:
+                try:
+                    from src.ingestion.ingestion.video_pipeline import process_video
+                    v_res = process_video(str(dest))
+                    pod_a_units = v_res.get("all_units", [])
+                except Exception as e:
+                    log.warning(f"Video pipeline error for {filename}: {e}")
+            elif suffix in [".png", ".jpg", ".jpeg", ".webp"]:
+                caption = f"Educational diagram extracted from {dest.name}"
+                try:
+                    from src.ingestion.vision.image_captioner import describe_image
+                    c = describe_image(str(dest))
+                    if c and c != "NOT_EDUCATIONAL":
+                        caption = c
+                except Exception as e:
+                    log.warning(f"Vision captioning fallback for {filename}: {e}")
+
+                from src.ingestion.schemas.content_unit import ContentUnit as PodAUnit
                 pod_a_units.append(PodAUnit(
-                    unit_id=f"{dest.stem}_c{c_idx}",
+                    unit_id=f"{dest.stem}_diag1",
                     source_id=dest.name,
-                    source_type="document",
-                    location={"page": c_idx},
-                    chunk_index=c_idx,
-                    text=ch,
+                    source_type="diagram",
+                    location={"page": 1},
+                    chunk_index=1,
+                    text=caption,
+                    visual_description=caption,
                 ))
+            else:
+                content = dest.read_text(encoding="utf-8", errors="ignore")
+                chunks = chunk_text(content) if chunk_text else [content]
+                from src.ingestion.schemas.content_unit import ContentUnit as PodAUnit
+                for c_idx, ch in enumerate(chunks, start=1):
+                    pod_a_units.append(PodAUnit(
+                        unit_id=f"{dest.stem}_c{c_idx}",
+                        source_id=dest.name,
+                        source_type="document",
+                        location={"page": c_idx},
+                        chunk_index=c_idx,
+                        text=ch,
+                    ))
 
-        units_to_add = [pod_a_to_pod_b_unit(u) for u in pod_a_units]
+            converted_units = [pod_a_to_pod_b_unit(u) for u in pod_a_units]
 
-        if units_to_add:
-            doc_stem = dest.stem
-            doc_aliases = [
-                doc_stem.lower(),
-                dest.name.lower(),
-                "ppt",
-                "pptx",
-                "uploaded ppt",
-                "slides",
-                "presentation",
-                "uploaded presentation",
-                "uploaded document",
-                "uploaded course material",
-            ]
-            cid = f"doc_{doc_stem.lower().replace(' ', '_')}"
-            if cid not in rt.bundle.graph.concepts:
-                ev_ids = [u.unit_id for u in units_to_add[:10]]
-                rt.bundle.graph.concepts[cid] = GraphConceptNode(
-                    concept_id=cid,
-                    name=doc_stem,
-                    topic="t-course-materials",
-                    aliases=doc_aliases,
-                    evidence_units=ev_ids,
-                    prerequisites=[],
-                )
-            rt.ingest(units_to_add, replace_sources=True)
+            if converted_units:
+                doc_stem = dest.stem
+                doc_aliases = [
+                    doc_stem.lower(),
+                    dest.name.lower(),
+                    "slides",
+                    "presentation",
+                    "notes",
+                    "uploaded document",
+                ]
+                cid = f"doc_{doc_stem.lower().replace(' ', '_')}"
+                if cid not in rt.bundle.graph.concepts:
+                    ev_ids = [u.unit_id for u in converted_units[:10]]
+                    rt.bundle.graph.concepts[cid] = GraphConceptNode(
+                        concept_id=cid,
+                        name=doc_stem,
+                        topic="t-course-materials",
+                        aliases=doc_aliases,
+                        evidence_units=ev_ids,
+                        prerequisites=[],
+                    )
+                all_units_to_add.extend(converted_units)
+                processed_files.append(filename)
+
+        if all_units_to_add:
+            rt.ingest(all_units_to_add, replace_sources=True)
 
         return {
             "status": "success",
-            "filename": filename,
-            "units_created": len(units_to_add),
+            "files_processed": len(processed_files),
+            "filenames": processed_files,
+            "filename": processed_files[0] if processed_files else "batch",
+            "units_created": len(all_units_to_add),
             "sample_units": [
                 {
                     "unit_id": u.unit_id,
                     "source_id": u.source_id,
                     "source_type": u.source_type,
-                    "location": {"slide": u.location.slide, "page": u.location.page},
+                    "location": {"slide": u.location.slide, "page": u.location.page, "timestamp": u.location.t_start},
                     "text": u.text[:160] + "...",
                 }
-                for u in units_to_add[:5]
+                for u in all_units_to_add[:8]
             ],
             "total_corpus_units": len(rt.bundle.store),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         log.error(f"Upload processing failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/uploads/{filename}", tags=["Ingestion"])
+async def get_uploaded_file(filename: str):
+    """Serve uploaded media files for browser preview and inspection."""
+    file_path = UPLOAD_DIR / filename
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    ext = file_path.suffix.lower()
+    media_type = "application/octet-stream"
+    if ext == ".pdf":
+        media_type = "application/pdf"
+    elif ext == ".png":
+        media_type = "image/png"
+    elif ext in [".jpg", ".jpeg"]:
+        media_type = "image/jpeg"
+    elif ext == ".webp":
+        media_type = "image/webp"
+    elif ext == ".mp4":
+        media_type = "video/mp4"
+    elif ext in [".txt", ".md"]:
+        media_type = "text/plain; charset=utf-8"
+
+    return FileResponse(file_path, filename=filename, media_type=media_type)
+
+
+@app.get("/ingest/materials", tags=["Ingestion"])
+def list_uploaded_materials():
+    """
+    Returns list of all uploaded course materials with metadata, chunk count, and linked concept nodes.
+    """
+    materials = []
+    store = rt.bundle.store
+    graph = rt.bundle.graph
+
+    units_by_source: Dict[str, List[Any]] = {}
+    for u in store.all():
+        src = str(u.source_id)
+        if src not in units_by_source:
+            units_by_source[src] = []
+        units_by_source[src].append(u)
+
+    source_to_concepts: Dict[str, List[Dict[str, str]]] = {}
+    for cid, c in graph.concepts.items():
+        for ev_id in c.evidence_units:
+            u = store.get(ev_id)
+            if u:
+                src = str(u.source_id)
+                if src not in source_to_concepts:
+                    source_to_concepts[src] = []
+                if not any(item["concept_id"] == cid for item in source_to_concepts[src]):
+                    source_to_concepts[src].append({
+                        "concept_id": cid,
+                        "name": c.name,
+                        "topic": getattr(c, "topic", "Course Material")
+                    })
+
+    if UPLOAD_DIR.exists():
+        for f in sorted(UPLOAD_DIR.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+            if f.is_file():
+                ext = f.suffix.lower()
+                category = "document"
+                if ext in [".ppt", ".pptx"]:
+                    category = "pptx"
+                elif ext == ".pdf":
+                    category = "pdf"
+                elif ext in [".mp4", ".mov", ".webm"]:
+                    category = "video"
+                elif ext in [".png", ".jpg", ".jpeg", ".webp"]:
+                    category = "image"
+
+                units = units_by_source.get(f.name, [])
+                linked = source_to_concepts.get(f.name, [])
+
+                sample_units = []
+                for u in units[:30]:
+                    loc = getattr(u, "location", None)
+                    slide = getattr(loc, "slide", None) if loc else None
+                    page = getattr(loc, "page", None) if loc else None
+                    t_start = getattr(loc, "t_start", None) if loc else None
+                    sample_units.append({
+                        "unit_id": str(u.unit_id),
+                        "location": {
+                            "slide": slide,
+                            "page": page,
+                            "timestamp": f"@{int(t_start)}s" if t_start is not None else None,
+                        },
+                        "text": getattr(u, "text", ""),
+                        "image_caption": getattr(u, "image_caption", None),
+                    })
+
+                materials.append({
+                    "filename": f.name,
+                    "size_bytes": f.stat().st_size,
+                    "file_type": category,
+                    "modified_at": datetime.fromtimestamp(f.stat().st_mtime, tz=timezone.utc).isoformat(),
+                    "download_url": f"/uploads/{f.name}",
+                    "units_count": len(units),
+                    "linked_concepts": linked,
+                    "sample_units": sample_units,
+                })
+
+    return {"materials": materials, "total_count": len(materials)}
 
 
 # --------------------------------------------------------------------------- #
@@ -761,6 +918,38 @@ def _init_existing_uploads():
                 pod_a_units = extract_ppt_content(str(p))
             elif suffix == ".pdf":
                 pod_a_units = extract_pdf_content(str(p))
+            elif suffix in [".png", ".jpg", ".jpeg", ".webp"]:
+                from src.ingestion.schemas.content_unit import ContentUnit as PodAUnit
+                caption = f"Educational visual diagram from {p.name}"
+                try:
+                    from src.ingestion.vision.image_captioner import describe_image
+                    c = describe_image(str(p))
+                    if c and c != "NOT_EDUCATIONAL":
+                        caption = c
+                except Exception:
+                    pass
+                pod_a_units = [PodAUnit(
+                    unit_id=f"{p.stem}_diag1",
+                    source_id=p.name,
+                    source_type="diagram",
+                    location={"page": 1},
+                    chunk_index=1,
+                    text=caption,
+                    visual_description=caption,
+                )]
+            elif suffix in [".txt", ".md"]:
+                content = p.read_text(encoding="utf-8", errors="ignore")
+                chunks = chunk_text(content) if chunk_text else [content]
+                from src.ingestion.schemas.content_unit import ContentUnit as PodAUnit
+                for c_idx, ch in enumerate(chunks, start=1):
+                    pod_a_units.append(PodAUnit(
+                        unit_id=f"{p.stem}_c{c_idx}",
+                        source_id=p.name,
+                        source_type="document",
+                        location={"page": c_idx},
+                        chunk_index=c_idx,
+                        text=ch,
+                    ))
             if pod_a_units:
                 units = [pod_a_to_pod_b_unit(u) for u in pod_a_units]
                 doc_stem = p.stem
@@ -779,6 +968,7 @@ def _init_existing_uploads():
                             "slides",
                             "presentation",
                             "uploaded presentation",
+                            "uploaded document",
                         ],
                         evidence_units=[u.unit_id for u in units[:10]],
                         prerequisites=[],
