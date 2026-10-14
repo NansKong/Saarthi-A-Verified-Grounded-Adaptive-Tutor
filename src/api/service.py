@@ -482,16 +482,38 @@ def pod_a_to_pod_b_unit(u) -> PodBContentUnit:
         prefix = f"Slide {slide} ({Path(u.source_id).stem}): "
     elif page is not None:
         prefix = f"Page {page} ({Path(u.source_id).stem}): "
+    elif t_start is not None:
+        secs = int(t_start)
+        h, rem = divmod(secs, 3600)
+        m, s = divmod(rem, 60)
+        ts_str = f"{h}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+        prefix = f"Video @{ts_str} ({Path(u.source_id).stem}): "
 
     full_text = f"{prefix}{u.text or ''}".strip()
     if not full_text and getattr(u, "visual_description", None):
         full_text = f"{prefix}[Visual] {u.visual_description}".strip()
 
+    raw_type = str(getattr(u, "source_type", "")).lower()
+    if t_start is not None:
+        loc = Location(t_start=t_start)
+    elif slide is not None:
+        loc = Location(slide=slide)
+    elif page is not None:
+        loc = Location(page=page)
+    else:
+        if "slide" in raw_type or "ppt" in raw_type:
+            loc = Location(slide=1)
+        elif "video" in raw_type or "audio" in raw_type:
+            loc = Location(t_start=0.0)
+        else:
+            loc = Location(page=1)
+    st = loc.kind
+
     return PodBContentUnit(
         unit_id=str(u.unit_id),
         source_id=str(u.source_id),
-        source_type=str(u.source_type),
-        location=Location(page=page, slide=slide, t_start=t_start),
+        source_type=st,
+        location=loc,
         text=full_text,
         image_caption=getattr(u, "visual_description", None),
     )
@@ -545,12 +567,20 @@ async def upload_material(
             elif suffix == ".pdf":
                 pod_a_units = extract_pdf_content(str(dest))
             elif suffix in video_exts:
+                # Dedicated Whisper speech-to-text audio pipeline
                 try:
-                    from src.ingestion.ingestion.video_pipeline import process_video
-                    v_res = process_video(str(dest))
-                    pod_a_units = v_res.get("all_units", [])
+                    from src.ingestion.ingestion.audio_extractor import extract_audio
+                    from src.ingestion.ingestion.video_transcriber import transcribe_audio
+                    aud = extract_audio(str(dest))
+                    pod_a_units = transcribe_audio(aud, dest.name)
                 except Exception as e:
-                    log.warning(f"Video pipeline error for {filename}: {e}")
+                    log.warning(f"Video audio transcription failed for {filename}: {e}, trying full pipeline")
+                    try:
+                        from src.ingestion.ingestion.video_pipeline import process_video
+                        v_res = process_video(str(dest))
+                        pod_a_units = v_res.get("all_units", [])
+                    except Exception as e2:
+                        log.error(f"Full video pipeline also failed for {filename}: {e2}")
             elif suffix in [".png", ".jpg", ".jpeg", ".webp"]:
                 caption = f"Educational diagram extracted from {dest.name}"
                 try:
@@ -589,20 +619,30 @@ async def upload_material(
 
             if converted_units:
                 doc_stem = dest.stem
+                clean_title = doc_stem.lower().replace("-", " ").replace("_", " ")
                 doc_aliases = [
                     doc_stem.lower(),
                     dest.name.lower(),
+                    clean_title,
+                    "video",
+                    "uploaded video",
+                    "lecture video",
+                    "recording",
                     "slides",
                     "presentation",
                     "notes",
                     "uploaded document",
                 ]
-                cid = f"doc_{doc_stem.lower().replace(' ', '_')}"
+                for word in clean_title.split():
+                    if len(word) > 3 and word not in doc_aliases:
+                        doc_aliases.append(word)
+
+                cid = f"doc_{doc_stem.lower().replace(' ', '_').replace('-', '_')}"
                 if cid not in rt.bundle.graph.concepts:
                     ev_ids = [u.unit_id for u in converted_units[:10]]
                     rt.bundle.graph.concepts[cid] = GraphConceptNode(
                         concept_id=cid,
-                        name=doc_stem,
+                        name=clean_title.title(),
                         topic="t-course-materials",
                         aliases=doc_aliases,
                         evidence_units=ev_ids,
@@ -640,7 +680,7 @@ async def upload_material(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/uploads/{filename}", tags=["Ingestion"])
+@app.api_route("/uploads/{filename}", methods=["GET", "HEAD"], tags=["Ingestion"])
 async def get_uploaded_file(filename: str):
     """Serve uploaded media files for browser preview and inspection."""
     file_path = UPLOAD_DIR / filename
@@ -657,12 +697,19 @@ async def get_uploaded_file(filename: str):
         media_type = "image/jpeg"
     elif ext == ".webp":
         media_type = "image/webp"
-    elif ext == ".mp4":
+    elif ext in [".mp4", ".mov", ".webm", ".avi", ".mkv"]:
         media_type = "video/mp4"
+    elif ext in [".mp3", ".wav", ".m4a"]:
+        media_type = "audio/mpeg"
     elif ext in [".txt", ".md"]:
         media_type = "text/plain; charset=utf-8"
 
-    return FileResponse(file_path, filename=filename, media_type=media_type)
+    return FileResponse(
+        file_path,
+        media_type=media_type,
+        content_disposition_type="inline",
+        filename=filename,
+    )
 
 
 @app.get("/ingest/materials", tags=["Ingestion"])
@@ -714,17 +761,24 @@ def list_uploaded_materials():
                 linked = source_to_concepts.get(f.name, [])
 
                 sample_units = []
-                for u in units[:30]:
+                for u in units[:40]:
                     loc = getattr(u, "location", None)
                     slide = getattr(loc, "slide", None) if loc else None
                     page = getattr(loc, "page", None) if loc else None
                     t_start = getattr(loc, "t_start", None) if loc else None
+                    ts_str = None
+                    if t_start is not None:
+                        secs = int(t_start)
+                        h, rem = divmod(secs, 3600)
+                        m, s = divmod(rem, 60)
+                        ts_str = f"@{h}:{m:02d}:{s:02d}" if h else f"@{m:02d}:{s:02d}"
                     sample_units.append({
                         "unit_id": str(u.unit_id),
                         "location": {
                             "slide": slide,
                             "page": page,
-                            "timestamp": f"@{int(t_start)}s" if t_start is not None else None,
+                            "timestamp": ts_str,
+                            "seconds": t_start,
                         },
                         "text": getattr(u, "text", ""),
                         "image_caption": getattr(u, "image_caption", None),
@@ -950,26 +1004,49 @@ def _init_existing_uploads():
                         chunk_index=c_idx,
                         text=ch,
                     ))
+            elif suffix in [".mp4", ".mov", ".webm", ".avi", ".mkv"]:
+                try:
+                    aud_file = Path("extracted_audio") / f"{p.stem}.mp3"
+                    if not aud_file.exists():
+                        from src.ingestion.ingestion.audio_extractor import extract_audio
+                        aud_path = extract_audio(str(p))
+                        aud_file = Path(aud_path)
+                    from src.ingestion.ingestion.video_transcriber import transcribe_audio
+                    pod_a_units = transcribe_audio(str(aud_file), p.name)
+                except Exception as e:
+                    log.warning(f"Video startup indexing failed for {p.name}: {e}")
+
             if pod_a_units:
                 units = [pod_a_to_pod_b_unit(u) for u in pod_a_units]
                 doc_stem = p.stem
-                cid = f"doc_{doc_stem.lower().replace(' ', '_')}"
+                clean_title = doc_stem.lower().replace("-", " ").replace("_", " ")
+                doc_aliases = [
+                    doc_stem.lower(),
+                    p.name.lower(),
+                    clean_title,
+                    "video",
+                    "uploaded video",
+                    "lecture video",
+                    "recording",
+                    "ppt",
+                    "pptx",
+                    "uploaded ppt",
+                    "slides",
+                    "presentation",
+                    "uploaded presentation",
+                    "uploaded document",
+                ]
+                for word in clean_title.split():
+                    if len(word) > 3 and word not in doc_aliases:
+                        doc_aliases.append(word)
+
+                cid = f"doc_{doc_stem.lower().replace(' ', '_').replace('-', '_')}"
                 if cid not in rt.bundle.graph.concepts:
                     rt.bundle.graph.concepts[cid] = GraphConceptNode(
                         concept_id=cid,
-                        name=doc_stem,
+                        name=clean_title.title(),
                         topic="t-course-materials",
-                        aliases=[
-                            doc_stem.lower(),
-                            p.name.lower(),
-                            "ppt",
-                            "pptx",
-                            "uploaded ppt",
-                            "slides",
-                            "presentation",
-                            "uploaded presentation",
-                            "uploaded document",
-                        ],
+                        aliases=doc_aliases,
                         evidence_units=[u.unit_id for u in units[:10]],
                         prerequisites=[],
                     )

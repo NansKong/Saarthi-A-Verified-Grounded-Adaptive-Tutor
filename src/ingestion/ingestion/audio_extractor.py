@@ -6,6 +6,18 @@ AUDIO_DIR = Path("extracted_audio")
 AUDIO_DIR.mkdir(exist_ok=True)
 
 
+def _get_ffmpeg_executable() -> str:
+    import shutil
+    sys_ffmpeg = shutil.which("ffmpeg")
+    if sys_ffmpeg:
+        return sys_ffmpeg
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return "ffmpeg"
+
+
 def extract_audio(video_path: str) -> str:
     video_path = Path(video_path)
 
@@ -20,8 +32,10 @@ def extract_audio(video_path: str) -> str:
         f"{video_path.stem}.mp3"
     )
 
+    ffmpeg_bin = _get_ffmpeg_executable()
+
     command = [
-        "ffmpeg",
+        ffmpeg_bin,
         "-y",
         "-i",
         str(video_path),

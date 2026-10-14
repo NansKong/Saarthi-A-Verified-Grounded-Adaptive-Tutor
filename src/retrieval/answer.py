@@ -70,7 +70,8 @@ _GENERIC = frozenset("""affect affects need needs use used using make makes work
 happen happens differ differs difference compare comparison define definition describe calculate compute apply applies
 relate related matter impact influence cause causes depend depends require requires tell know understand important
 different example examples step steps type types kind kinds way ways good bad best better much many
-brief briefly upload uploaded uploads ppt pptx pdf presentation document doc file files slide slides
+brief briefly upload uploaded uploads ppt pptx pdf presentation document doc file files slide slides video videos clip clips audio recording
+rule rules law laws theory theories aspect aspects part parts point points time era role
 summarize summary overview main concept concepts core topics topic detail details discuss review intro introduction outline cover covered chapter unit""".split())
 
 
@@ -107,15 +108,34 @@ class GroundedAnswerer:
         question = question.strip()
         standalone = self._standalone(question, history or [])
         hits = self.retriever.search(standalone, self.k, source_types=source_types, source_ids=source_ids)
+        if standalone != question:
+            # Also search original user query so specific terms aren't washed out by standalone rewriting
+            raw_hits = self.retriever.search(question, self.k, source_types=source_types, source_ids=source_ids)
+            by_id = {h.unit.unit_id: h for h in hits}
+            for rh in raw_hits:
+                if rh.unit.unit_id not in by_id:
+                    by_id[rh.unit.unit_id] = rh
+                elif rh.relevance > by_id[rh.unit.unit_id].relevance or rh.score > by_id[rh.unit.unit_id].score:
+                    by_id[rh.unit.unit_id] = rh
+            hits = sorted(by_id.values(), key=lambda h: (-h.score, -h.relevance))[:self.k]
+
         retrieved = [h.unit.unit_id for h in hits]
         strength = max((sc for _, sc in self.graph.match_concepts(standalone, k=1)), default=0.0) if self.graph else 0.0
+        if standalone != question and self.graph:
+            strength = max(strength, max((sc for _, sc in self.graph.match_concepts(question, k=1)), default=0.0))
         top = hits[0].relevance if hits else 0.0
+        top_dense = hits[0].dense if hits else 0.0
+        top_bm25 = hits[0].bm25 if hits else 0.0
         thr = self.t_perm if self.llm else self.t_strict
         flagged = self.unseen_qualifiers(standalone)
+        if standalone != question and not flagged:
+            flagged = self.unseen_qualifiers(question)
         base = dict(question=question, retrieved=retrieved,
                     standalone_question=standalone if standalone != question else None)
 
-        if not hits or (top < thr and strength < 1.0):  # gate 1
+        # Gate 1: Pass if reranker relevance >= thr, OR concept matched, OR dense/sparse similarity is high (when LLM judge will verify downstream)
+        has_pass = bool(hits) and (top >= thr or (self.llm is not None and (top_dense >= 0.38 or top_bm25 >= 2.0)))
+        if not hits or (not has_pass and strength < 1.0):  # gate 1
             return self._refuse(base, standalone, allow_outside_knowledge)
 
         if self.llm is not None:

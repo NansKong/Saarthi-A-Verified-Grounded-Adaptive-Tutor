@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   X,
   FileText,
@@ -15,6 +15,8 @@ import {
   Sparkles,
   ChevronRight,
   Maximize2,
+  Play,
+  Clock,
 } from "lucide-react";
 import { UploadedMaterial, getApiBaseUrl } from "@/lib/api";
 
@@ -32,6 +34,7 @@ export function MediaPreviewModal({
   onSelectConcept,
 }: MediaPreviewModalProps) {
   const [activeTab, setActiveTab] = useState<"preview" | "chunks" | "concepts">("preview");
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   if (!isOpen || !material) return null;
 
@@ -81,6 +84,33 @@ export function MediaPreviewModal({
 
   const catInfo = getCategoryInfo(material.file_type);
   const CatIcon = catInfo.icon;
+
+  const handleSeekVideo = (timestampStr?: string, seconds?: number) => {
+    if (!videoRef.current) return;
+    let target = seconds;
+    if (target === undefined && timestampStr) {
+      const clean = timestampStr.replace("@", "").replace(/s$/i, "").trim();
+      const parts = clean.split(":").map(Number);
+      if (parts.length === 3 && !parts.some(isNaN)) {
+        target = parts[0] * 3600 + parts[1] * 60 + parts[2];
+      } else if (parts.length === 2 && !parts.some(isNaN)) {
+        target = parts[0] * 60 + parts[1];
+      } else {
+        const num = parseFloat(clean);
+        if (!isNaN(num)) target = num;
+      }
+    }
+    if (target !== undefined && !isNaN(target)) {
+      videoRef.current.currentTime = target;
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn("Autoplay notice:", err);
+        });
+      }
+      videoRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 dark:bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
@@ -208,16 +238,84 @@ export function MediaPreviewModal({
                 </div>
               )}
 
-              {/* Video Player */}
+              {/* Video Player & Interactive Segment Navigator */}
               {material.file_type === "video" && (
-                <div className="w-full rounded-2xl overflow-hidden border border-zinc-200 dark:border-white/[0.08] bg-black shadow-lg">
-                  <video
-                    controls
-                    src={fileUrl}
-                    className="w-full max-h-[480px]"
-                  >
-                    Your browser does not support the video tag.
-                  </video>
+                <div className="space-y-4">
+                  <div className="w-full rounded-2xl overflow-hidden border border-zinc-200 dark:border-white/[0.08] bg-black shadow-lg">
+                    <video
+                      ref={videoRef}
+                      controls
+                      preload="metadata"
+                      src={fileUrl}
+                      className="w-full max-h-[460px] bg-black"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+
+                  {/* Segment Navigation */}
+                  <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/[0.08] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-emerald-500" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-900 dark:text-white">
+                          Video Segments & Timestamps ({material.sample_units.length})
+                        </h4>
+                      </div>
+                      <span className="text-[11px] text-zinc-500">
+                        Click any segment to jump and play video
+                      </span>
+                    </div>
+
+                    {material.sample_units.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-[320px] overflow-y-auto pr-1">
+                        {material.sample_units.map((unit, idx) => (
+                          <div
+                            key={unit.unit_id || idx}
+                            onClick={() =>
+                              handleSeekVideo(
+                                unit.location?.timestamp,
+                                (unit.location as any)?.seconds
+                              )
+                            }
+                            className="p-3 rounded-xl bg-white dark:bg-white/[0.03] border border-zinc-200/80 dark:border-white/[0.06] hover:border-emerald-500/50 hover:bg-emerald-500/[0.03] transition-all cursor-pointer flex flex-col justify-between group shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                                <Play className="w-2.5 h-2.5 fill-current" />
+                                <span>{unit.location?.timestamp || `@${idx * 45}s`}</span>
+                              </span>
+                              <span className="text-[10px] font-mono text-zinc-400">
+                                {unit.unit_id}
+                              </span>
+                            </div>
+                            <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed line-clamp-3">
+                              {unit.text}
+                            </p>
+                            <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-zinc-100 dark:border-white/[0.04]">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSeekVideo(
+                                    unit.location?.timestamp,
+                                    (unit.location as any)?.seconds
+                                  );
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                              >
+                                <Play className="w-2.5 h-2.5 fill-current" />
+                                <span>Play this segment</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-xs text-zinc-500">
+                        No timestamped segments found. The audio transcription will automatically populate when processed.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
